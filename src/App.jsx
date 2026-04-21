@@ -628,11 +628,12 @@ export default function App() {
     setSelected(null);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setMembers([]);
-  };
+const handleLogout = async () => {
+  await supabase.auth.signOut();
+  setUser(null);
+  setMembers([]);
+  window.location.href = "/";
+};
 
   if (loading) return (
     <>
