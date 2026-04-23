@@ -36,16 +36,24 @@ export default function App() {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
+      console.log("1. useEffect start");
+
   // Dohvati postojeću sesiju
   supabase.auth.getSession().then(async ({ data: { session } }) => {
+        console.log("2. getSession done, session:", session);
+
     if (session) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", session.user.id)
         .maybeSingle();
+            console.log("3. profile:", profile);
+
       setUser({ ...session.user, profile });
     }
+        console.log("4. setLoading(false)");
+
     setLoading(false);
   });
 
