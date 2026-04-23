@@ -33,6 +33,12 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
       <div className="dp-body">
         <div className="dp-sec">
           <div className="dp-sec-title">Lični podaci</div>
+          {member.generational_line && (
+            <div className="dp-row">
+              <span className="dp-key">Koleno</span>
+              <span className="dp-val">{member.generational_line}. koleno</span>
+            </div>
+          )}
           {member.birth_year && (
             <div className="dp-row">
               <span className="dp-key">Rođen/a</span>

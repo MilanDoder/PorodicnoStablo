@@ -26,6 +26,7 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
           <tr>
             <th>Ime i prezime</th>
             <th>Pol</th>
+            <th>Koleno</th>
             <th>Godišta</th>
             <th>Roditelji</th>
             <th>Djeca</th>
@@ -43,6 +44,9 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
                   <span className={`gbadge ${m.gender}`}>
                     {m.gender === "male" ? "👨 Muški" : "👩 Ženski"}
                   </span>
+                </td>
+                <td style={{ color: "var(--gold-dark)", fontWeight: 600 }}>
+                  {m.generational_line ? `${m.generational_line}.` : <span style={{ color: "#ccc" }}>—</span>}
                 </td>
                 <td style={{ color: "#666" }}>
                   {m.birth_year || "?"}{m.death_year ? `–${m.death_year}` : ""}
