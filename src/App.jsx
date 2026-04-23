@@ -35,27 +35,56 @@ export default function App() {
   const isAdmin = user?.profile?.role === "admin";
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-  useEffect(() => {
-      console.log("1. useEffect start");
+useEffect(() => {
+  let done = false;
 
-  // Dohvati postojeću sesiju
-  supabase.auth.getSession().then(async ({ data: { session } }) => {
-        console.log("2. getSession done, session:", session);
+  const init = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        setUser({ ...session.user, profile });
+      }
+    } catch (e) {
+      console.error("getSession error:", e);
+    } finally {
+      done = true;
+      setLoading(false);
+    }
+  };
 
-    if (session) {
+  init();
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === "SIGNED_OUT") {
+      setUser(null);
+      setMembers([]);
+    }
+    if (event === "SIGNED_IN" && session) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", session.user.id)
         .maybeSingle();
-            console.log("3. profile:", profile);
-
       setUser({ ...session.user, profile });
+      if (!done) { done = true; setLoading(false); }
     }
-        console.log("4. setLoading(false)");
-
-    setLoading(false);
   });
+
+  // Sigurnosni timeout — ako sve zaglavilo, prestani sa loadingom
+  const timeout = setTimeout(() => {
+    if (!done) { done = true; setLoading(false); }
+  }, 5000);
+
+  return () => {
+    subscription.unsubscribe();
+    clearTimeout(timeout);
+  };
+}, []);
 
   // Slušaj promjene
   const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
