@@ -98,7 +98,16 @@ export default function RequestFormView({ user, members }) {
             <label className="form-label">Supružnik (iz stabla)</label>
             <select className="form-select" value={f.spouse_id} onChange={e => set("spouse_id", e.target.value)}>
               <option value="">— bez supružnika —</option>
-              {members.map(m => <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>)}
+              {members.map(m => {
+                const otac = members.find(p => (m.parent_ids || []).includes(p.id) && p.gender === "male");
+                const godina = m.birth_year ? ` · ${m.birth_year}.` : "";
+                const imeOca = otac ? ` (${otac.first_name})` : "";
+                return (
+                  <option key={m.id} value={m.id}>
+                    {m.first_name} {m.last_name}{imeOca}{godina}
+                  </option>
+                );
+              })}
             </select>
           </div>
           <div className="form-field full">
@@ -106,11 +115,20 @@ export default function RequestFormView({ user, members }) {
             <select
               className="form-select"
               multiple
-              style={{ height: 80 }}
+              style={{ height: 110 }}
               value={(f.parent_ids || []).map(String)}
               onChange={e => set("parent_ids", Array.from(e.target.selectedOptions, o => parseInt(o.value)))}
             >
-              {members.map(m => <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>)}
+              {members.map(m => {
+                const otac = members.find(p => (m.parent_ids || []).includes(p.id) && p.gender === "male");
+                const godina = m.birth_year ? ` · ${m.birth_year}.` : "";
+                const imeOca = otac ? ` (${otac.first_name})` : "";
+                return (
+                  <option key={m.id} value={m.id}>
+                    {m.first_name} {m.last_name}{imeOca}{godina}
+                  </option>
+                );
+              })}
             </select>
             <span style={{ fontSize: ".62rem", color: "#999", marginTop: 3 }}>Ctrl+klik za više roditelja</span>
           </div>
