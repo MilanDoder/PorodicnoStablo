@@ -1007,21 +1007,48 @@ export default function App() {
   const isAdmin = user?.profile?.role === "admin";
 
   useEffect(() => {
+    let initialDone = false;
+
+    const fetchProfile = async (userId) => {
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
+        return profile || null;
+      } catch {
+        return null;
+      }
+    };
+
+    // Provjeri postojeću sesiju pri startu
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+        const profile = await fetchProfile(session.user.id);
         setUser({ ...session.user, profile });
       }
+      initialDone = true;
+      setLoading(false);
+    }).catch(() => {
+      initialDone = true;
       setLoading(false);
     });
+
+    // Slušaj promjene (login/logout) — ignoriši INITIAL_SESSION jer ga getSession već obrađuje
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "INITIAL_SESSION") return;
       if (session) {
-        const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+        const profile = await fetchProfile(session.user.id);
         setUser({ ...session.user, profile });
+        if (!initialDone) { initialDone = true; setLoading(false); }
       } else {
         setUser(null);
+        setMembers([]);
+        if (!initialDone) { initialDone = true; setLoading(false); }
       }
     });
+
     return () => subscription.unsubscribe();
   }, []);
 
