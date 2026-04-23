@@ -92,34 +92,34 @@ export default function App() {
     if (memberData.birth_year === "") memberData.birth_year = null;
     if (memberData.death_year === "") memberData.death_year = null;
 
-    let memberId = form.id;
+    try {
+      let memberId = form.id;
 
-    if (form.id) {
-      await supabase.from("members").update(memberData).eq("id", form.id);
-      await supabase.from("member_parents").delete().eq("member_id", form.id);
-    } else {
-      const { data } = await supabase.from("members").insert(memberData).select().single();
-      memberId = data.id;
-    }
+      if (form.id) {
+        const { error } = await supabase.from("members").update(memberData).eq("id", form.id);
+        if (error) throw error;
+        await supabase.from("member_parents").delete().eq("member_id", form.id);
+      } else {
+        const { data, error } = await supabase.from("members").insert(memberData).select().single();
+        if (error) throw error;
+        memberId = data.id;
+      }
 
-    // Upiši roditelje ovog člana
-    if ((parent_ids || []).length > 0) {
-      await supabase.from("member_parents").insert(
-        parent_ids.map(pid => ({ member_id: memberId, parent_id: pid }))
-      );
-    }
+      if ((parent_ids || []).length > 0) {
+        const { error } = await supabase.from("member_parents").insert(
+          parent_ids.map(pid => ({ member_id: memberId, parent_id: pid }))
+        );
+        if (error) throw error;
+      }
 
-    // Upiši djecu — za svako dijete dodaj ovog člana kao roditelja
-    if (childIds.length > 0) {
       for (const childId of childIds) {
-        // Obriši staru vezu pa dodaj novu (da ne duplira)
         await supabase.from("member_parents").delete()
           .eq("member_id", childId).eq("parent_id", memberId);
         await supabase.from("member_parents").insert({
           member_id: childId, parent_id: memberId,
         });
       }
-      // Ako je neko dijete maknuto, obriši vezu
+
       const removedChildren = members
         .filter(m => (m.parent_ids || []).includes(memberId) && !childIds.includes(m.id))
         .map(m => m.id);
@@ -127,11 +127,14 @@ export default function App() {
         await supabase.from("member_parents").delete()
           .eq("member_id", childId).eq("parent_id", memberId);
       }
-    }
 
-    await loadMembers();
-    setShowModal(false);
-    setEditMember(null);
+      await loadMembers();
+      setShowModal(false);
+      setEditMember(null);
+    } catch (err) {
+      console.error("Greška pri čuvanju:", err);
+      alert("Greška: " + (err.message || JSON.stringify(err)));
+    }
   };
 
   const handleDelete = async (id) => {
@@ -146,7 +149,133 @@ export default function App() {
     setMembers([]);
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const handleExportPDF = () => {
+    // Dinamički učitaj jsPDF iz CDN-a
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    script.onload = () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+      const pageW = doc.internal.pageSize.getWidth();
+      const gold  = [139, 90, 43];
+      const ink   = [26, 16, 8];
+      const gray  = [120, 110, 100];
+
+      // ── Naslov ──
+      doc.setFillColor(26, 16, 8);
+      doc.rect(0, 0, pageW, 22, "F");
+      doc.setTextColor(232, 184, 90);
+      doc.setFontSize(18);
+      doc.text("Породично стablo — Додеровићи", pageW / 2, 10, { align: "center" });
+      doc.setFontSize(8);
+      doc.setTextColor(180, 150, 80);
+      doc.text("Пољана · Породична архива", pageW / 2, 17, { align: "center" });
+
+      // ── Grupiši po kolenima ──
+      const byGen = {};
+      members.forEach(m => {
+        const k = m.generational_line || "—";
+        if (!byGen[k]) byGen[k] = [];
+        byGen[k].push(m);
+      });
+
+      const sortedGens = Object.keys(byGen).sort((a, b) => {
+        if (a === "—") return 1;
+        if (b === "—") return -1;
+        return parseInt(a) - parseInt(b);
+      });
+
+      let y = 30;
+      const lineH   = 6;
+      const colW    = pageW / 3;
+      const padLeft = 10;
+
+      sortedGens.forEach(gen => {
+        const genMembers = byGen[gen];
+
+        // Provjeri da li ima mjesta na stranici
+        if (y + 10 + genMembers.length * lineH > doc.internal.pageSize.getHeight() - 10) {
+          doc.addPage();
+          y = 15;
+        }
+
+        // Naslov kolena
+        doc.setFillColor(...gold);
+        doc.rect(padLeft, y, pageW - padLeft * 2, 7, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.setFont(undefined, "bold");
+        const genLabel = gen === "—" ? "Без колена" : `${gen}. колено`;
+        doc.text(`${genLabel}  (${genMembers.length} чланова)`, padLeft + 3, y + 5);
+        y += 9;
+
+        // Kolone: Ime | Godišta | Roditelji
+        doc.setTextColor(...gray);
+        doc.setFontSize(6.5);
+        doc.setFont(undefined, "normal");
+        doc.text("Ime i prezime", padLeft + 2, y);
+        doc.text("Godišta", padLeft + colW, y);
+        doc.text("Roditelji", padLeft + colW * 2, y);
+        y += 1;
+        doc.setDrawColor(...gold);
+        doc.setLineWidth(0.2);
+        doc.line(padLeft, y, pageW - padLeft, y);
+        y += 3;
+
+        genMembers.forEach((m, i) => {
+          if (y > doc.internal.pageSize.getHeight() - 12) {
+            doc.addPage();
+            y = 15;
+          }
+
+          // Izmjenični red
+          if (i % 2 === 0) {
+            doc.setFillColor(248, 243, 232);
+            doc.rect(padLeft, y - 3.5, pageW - padLeft * 2, lineH, "F");
+          }
+
+          doc.setTextColor(...ink);
+          doc.setFontSize(7.5);
+          doc.setFont(undefined, "bold");
+          doc.text(`${m.first_name} ${m.last_name}`, padLeft + 2, y);
+
+          doc.setFont(undefined, "normal");
+          doc.setTextColor(...gray);
+          const godine = m.birth_year
+            ? `${m.birth_year}${m.death_year ? ` – ${m.death_year}` : ""}`
+            : "—";
+          doc.text(godine, padLeft + colW, y);
+
+          const roditelji = members
+            .filter(p => (m.parent_ids || []).includes(p.id))
+            .map(p => p.first_name)
+            .join(", ") || "—";
+          doc.text(roditelji, padLeft + colW * 2, y);
+
+          y += lineH;
+        });
+
+        y += 4;
+      });
+
+      // ── Footer ──
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(6);
+        doc.setTextColor(...gray);
+        doc.text(
+          `Генерисано: ${new Date().toLocaleDateString("sr-Latn")} · Укупно чланова: ${members.length}`,
+          padLeft, doc.internal.pageSize.getHeight() - 4
+        );
+        doc.text(`${i} / ${totalPages}`, pageW - padLeft, doc.internal.pageSize.getHeight() - 4, { align: "right" });
+      }
+
+      doc.save("Doderovici-porodicno-stablo.pdf");
+    };
+    document.head.appendChild(script);
+  };
   if (loading) {
     return (
       <div className="loading-screen">
@@ -209,6 +338,9 @@ export default function App() {
           <div className="topbar-title">{TOPBAR_TITLES[view] || ""}</div>
           <div className="topbar-actions">
             <span style={{ fontSize: ".7rem", color: "#aaa" }}>{members.length} članova</span>
+            <button className="btn btn-ghost" onClick={handleExportPDF}>
+              <Icon name="image" size={13} />PDF
+            </button>
             {isAdmin && !["admin", "istorijat", "galerija"].includes(view) && (
               <button className="btn btn-primary" onClick={() => openModal(null)}>
                 <Icon name="plus" size={13} />Novi član
