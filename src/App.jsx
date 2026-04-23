@@ -6,12 +6,11 @@ import TreeView from "./components/TreeView";
 import ListView from "./components/ListView";
 import MemberModal from "./components/MemberModal";
 
-
 // Lazy-load tabove koji se ne otvaraju odmah
-const AdminPanel       = lazy(() => import("./components/AdminPanel"));
-const RequestFormView  = lazy(() => import("./components/RequestFormView"));
-const HistoryView      = lazy(() => import("./components/HistoryView"));
-const GalleryView      = lazy(() => import("./components/GalleryView"));
+const AdminPanel      = lazy(() => import("./components/AdminPanel"));
+const RequestFormView = lazy(() => import("./components/RequestFormView"));
+const HistoryView     = lazy(() => import("./components/HistoryView"));
+const GalleryView     = lazy(() => import("./components/GalleryView"));
 
 const TOPBAR_TITLES = {
   tree:      "Porodično Stablo — Додеровићи",
@@ -35,75 +34,56 @@ export default function App() {
   const isAdmin = user?.profile?.role === "admin";
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-useEffect(() => {
-  let done = false;
+  useEffect(() => {
+    let done = false;
 
-  const init = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+    const init = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", session.user.id)
+            .maybeSingle();
+          setUser({ ...session.user, profile });
+        }
+      } catch (e) {
+        console.error("getSession error:", e);
+      } finally {
+        done = true;
+        setLoading(false);
+      }
+    };
+
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setMembers([]);
+      }
+      if (event === "SIGNED_IN" && session) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", session.user.id)
           .maybeSingle();
         setUser({ ...session.user, profile });
+        if (!done) { done = true; setLoading(false); }
       }
-    } catch (e) {
-      console.error("getSession error:", e);
-    } finally {
-      done = true;
-      setLoading(false);
-    }
-  };
+    });
 
-  init();
-
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-    if (event === "SIGNED_OUT") {
-      setUser(null);
-      setMembers([]);
-    }
-    if (event === "SIGNED_IN" && session) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .maybeSingle();
-      setUser({ ...session.user, profile });
+    // Sigurnosni timeout — ako sve zaglavilo, prestani sa loadingom
+    const timeout = setTimeout(() => {
       if (!done) { done = true; setLoading(false); }
-    }
-  });
+    }, 5000);
 
-  // Sigurnosni timeout — ako sve zaglavilo, prestani sa loadingom
-  const timeout = setTimeout(() => {
-    if (!done) { done = true; setLoading(false); }
-  }, 5000);
-
-  return () => {
-    subscription.unsubscribe();
-    clearTimeout(timeout);
-  };
-}, []);
-
-  // Slušaj promjene
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-    if (event === "SIGNED_OUT") {
-      setUser(null);
-      setMembers([]);
-    }
-    if (event === "SIGNED_IN" && session) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .maybeSingle();
-      setUser({ ...session.user, profile });
-    }
-  });
-
-  return () => subscription.unsubscribe();
-}, []);
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -119,7 +99,10 @@ useEffect(() => {
   };
 
   const loadPendingCount = async () => {
-    const { count } = await supabase.from("data_requests").select("*", { count: "exact", head: true }).eq("status", "pending");
+    const { count } = await supabase
+      .from("data_requests")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "pending");
     setPendingCount(count || 0);
   };
 
@@ -181,7 +164,6 @@ useEffect(() => {
   ];
 
   const displayName = user?.profile?.full_name || user?.email || "Korisnik";
-
   const openModal = (member = null) => { setEditMember(member); setShowModal(true); };
 
   return (
