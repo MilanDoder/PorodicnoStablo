@@ -32,7 +32,6 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
       className={`member-node ${m.gender}${selected?.id === m.id ? " sel" : ""}`}
       onClick={() => onSelect(m)}
     >
-      <div className="node-emoji">{m.gender === "male" ? "👨" : "👩"}</div>
       <div className="node-name">{m.first_name}<br />{m.last_name}</div>
       {m.birth_year && (
         <div className="node-note">{m.birth_year}{m.death_year ? `–${m.death_year}` : ""}</div>
