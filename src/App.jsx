@@ -7,10 +7,10 @@ import ListView from "./components/ListView";
 import MemberModal from "./components/MemberModal";
 
 // Lazy-load tabove koji se ne otvaraju odmah
-const AdminPanel      = lazy(() => import("./components/AdminPanel"));
-const RequestFormView = lazy(() => import("./components/RequestFormView"));
-const HistoryView     = lazy(() => import("./components/HistoryView"));
-const GalleryView     = lazy(() => import("./components/GalleryView"));
+const AdminPanel       = lazy(() => import("./components/AdminPanel"));
+const RequestFormView  = lazy(() => import("./components/RequestFormView"));
+const HistoryView      = lazy(() => import("./components/HistoryView"));
+const GalleryView      = lazy(() => import("./components/GalleryView"));
 
 const TOPBAR_TITLES = {
   tree:      "Porodično Stablo — Додеровићи",
@@ -35,54 +35,38 @@ export default function App() {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    let done = false;
+    let initialDone = false;
 
-    const init = async () => {
+    const fetchProfile = async (userId) => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", session.user.id)
-            .maybeSingle();
-          setUser({ ...session.user, profile });
-        }
-      } catch (e) {
-        console.error("getSession error:", e);
-      } finally {
-        done = true;
-        setLoading(false);
-      }
+        const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+        return profile || null;
+      } catch { return null; }
     };
 
-    init();
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        const profile = await fetchProfile(session.user.id);
+        setUser({ ...session.user, profile });
+      }
+      initialDone = true;
+      setLoading(false);
+    }).catch(() => { initialDone = true; setLoading(false); });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_OUT") {
+      if (event === "INITIAL_SESSION") return;
+      if (session) {
+        const profile = await fetchProfile(session.user.id);
+        setUser({ ...session.user, profile });
+        if (!initialDone) { initialDone = true; setLoading(false); }
+      } else {
         setUser(null);
         setMembers([]);
-      }
-      if (event === "SIGNED_IN" && session) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .maybeSingle();
-        setUser({ ...session.user, profile });
-        if (!done) { done = true; setLoading(false); }
+        if (!initialDone) { initialDone = true; setLoading(false); }
       }
     });
 
-    // Sigurnosni timeout — ako sve zaglavilo, prestani sa loadingom
-    const timeout = setTimeout(() => {
-      if (!done) { done = true; setLoading(false); }
-    }, 5000);
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(timeout);
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -99,30 +83,52 @@ export default function App() {
   };
 
   const loadPendingCount = async () => {
-    const { count } = await supabase
-      .from("data_requests")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "pending");
+    const { count } = await supabase.from("data_requests").select("*", { count: "exact", head: true }).eq("status", "pending");
     setPendingCount(count || 0);
   };
 
-  const handleSaveMember = async (form) => {
+  const handleSaveMember = async (form, childIds = []) => {
     const { parent_ids, ...memberData } = form;
     if (memberData.birth_year === "") memberData.birth_year = null;
     if (memberData.death_year === "") memberData.death_year = null;
+
+    let memberId = form.id;
 
     if (form.id) {
       await supabase.from("members").update(memberData).eq("id", form.id);
       await supabase.from("member_parents").delete().eq("member_id", form.id);
     } else {
       const { data } = await supabase.from("members").insert(memberData).select().single();
-      form.id = data.id;
+      memberId = data.id;
     }
+
+    // Upiši roditelje ovog člana
     if ((parent_ids || []).length > 0) {
       await supabase.from("member_parents").insert(
-        parent_ids.map(pid => ({ member_id: form.id, parent_id: pid }))
+        parent_ids.map(pid => ({ member_id: memberId, parent_id: pid }))
       );
     }
+
+    // Upiši djecu — za svako dijete dodaj ovog člana kao roditelja
+    if (childIds.length > 0) {
+      for (const childId of childIds) {
+        // Obriši staru vezu pa dodaj novu (da ne duplira)
+        await supabase.from("member_parents").delete()
+          .eq("member_id", childId).eq("parent_id", memberId);
+        await supabase.from("member_parents").insert({
+          member_id: childId, parent_id: memberId,
+        });
+      }
+      // Ako je neko dijete maknuto, obriši vezu
+      const removedChildren = members
+        .filter(m => (m.parent_ids || []).includes(memberId) && !childIds.includes(m.id))
+        .map(m => m.id);
+      for (const childId of removedChildren) {
+        await supabase.from("member_parents").delete()
+          .eq("member_id", childId).eq("parent_id", memberId);
+      }
+    }
+
     await loadMembers();
     setShowModal(false);
     setEditMember(null);
@@ -164,6 +170,7 @@ export default function App() {
   ];
 
   const displayName = user?.profile?.full_name || user?.email || "Korisnik";
+
   const openModal = (member = null) => { setEditMember(member); setShowModal(true); };
 
   return (
