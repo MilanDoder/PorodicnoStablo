@@ -36,39 +36,37 @@ export default function App() {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    let initialDone = false;
+  // Dohvati postojeću sesiju
+  supabase.auth.getSession().then(async ({ data: { session } }) => {
+    if (session) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      setUser({ ...session.user, profile });
+    }
+    setLoading(false);
+  });
 
-    const fetchProfile = async (userId) => {
-      try {
-        const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-        return profile || null;
-      } catch { return null; }
-    };
+  // Slušaj promjene
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === "SIGNED_OUT") {
+      setUser(null);
+      setMembers([]);
+    }
+    if (event === "SIGNED_IN" && session) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      setUser({ ...session.user, profile });
+    }
+  });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        const profile = await fetchProfile(session.user.id);
-        setUser({ ...session.user, profile });
-      }
-      initialDone = true;
-      setLoading(false);
-    }).catch(() => { initialDone = true; setLoading(false); });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "INITIAL_SESSION") return;
-      if (session) {
-        const profile = await fetchProfile(session.user.id);
-        setUser({ ...session.user, profile });
-        if (!initialDone) { initialDone = true; setLoading(false); }
-      } else {
-        setUser(null);
-        setMembers([]);
-        if (!initialDone) { initialDone = true; setLoading(false); }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  return () => subscription.unsubscribe();
+}, []);
 
   useEffect(() => {
     if (user) {
