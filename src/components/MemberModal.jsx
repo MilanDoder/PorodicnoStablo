@@ -16,7 +16,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
 
   const [f, setF] = useState(member || {
     first_name: "", last_name: "Додеровић", birth_year: "", death_year: "",
-    gender: "male", spouse_id: null, notes: "", parent_ids: [],
+    gender: "male", spouse_id: null, notes: "", parent_ids: [], generational_line: null,
   });
   const [childIds, setChildIds] = useState(existingChildIds);
   const [saving, setSaving] = useState(false);
@@ -69,6 +69,10 @@ export default function MemberModal({ member, members, onSave, onClose }) {
             <div className="form-field">
               <label className="form-label">God. smrti</label>
               <input className="form-input" type="number" value={f.death_year || ""} onChange={e => set("death_year", e.target.value || null)} placeholder="prazno ako je živ/a" />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Koleno</label>
+              <input className="form-input" type="number" value={f.generational_line || ""} onChange={e => set("generational_line", e.target.value ? parseInt(e.target.value) : null)} placeholder="npr. 3" />
             </div>
 
             {/* ── Roditelji ── */}
