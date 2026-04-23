@@ -35,26 +35,35 @@ export default function RequestFormView({ user, members }) {
   const handleSubmit = async () => {
     if (!f.first_name) return;
     setSaving(true);
-    const payload = {
-      user_id:    user.id,
-      user_email: user.email,
-      first_name: f.first_name,
-      last_name:  f.last_name,
-      gender:     f.gender,
-      birth_year: f.birth_year ? parseInt(f.birth_year) : null,
-      death_year: f.death_year ? parseInt(f.death_year) : null,
-      notes:      f.notes || null,
-      parent_ids: f.parent_ids,
-      spouse_id:  f.spouse_id ? parseInt(f.spouse_id) : null,
-      status:     "pending",
-    };
-    const { error } = await supabase.from("data_requests").insert(payload);
-    setSaving(false);
-    if (!error) {
+    try {
+      const payload = {
+        user_id:    user.id,
+        user_email: user.email,
+        first_name: f.first_name,
+        last_name:  f.last_name,
+        gender:     f.gender,
+        birth_year: f.birth_year ? parseInt(f.birth_year) : null,
+        death_year: f.death_year ? parseInt(f.death_year) : null,
+        notes:      f.notes || null,
+        parent_ids: f.parent_ids,
+        spouse_id:  f.spouse_id ? parseInt(f.spouse_id) : null,
+        status:     "pending",
+      };
+      const { error } = await supabase.from("data_requests").insert(payload);
+      if (error) {
+        console.error("Insert error:", error);
+        alert("Greška pri slanju: " + error.message);
+        return;
+      }
       setSuccess(true);
       setF(EMPTY_FORM);
       setTimeout(() => setSuccess(false), 5000);
       loadMyRequests();
+    } catch (e) {
+      console.error("Unexpected error:", e);
+      alert("Neočekivana greška. Pokušajte ponovo.");
+    } finally {
+      setSaving(false);
     }
   };
 
