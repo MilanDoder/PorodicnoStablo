@@ -16,16 +16,16 @@ export default function AdminPanel({ members, currentUser, onMemberAdded }) {
   const withChildren = members.filter(x => members.some(c => (c.parent_ids || []).includes(x.id))).length;
 
   const STATS = [
-    ["🌳", members.length, "Članova ukupno"],
-    ["👨", males,          "Muških"],
-    ["👩", females,        "Ženskih"],
-    ["✝",  deceased,       "Preminulih"],
-    ["👪", withChildren,   "Sa djecom"],
+    ["🌳", members.length, "Чланова укупно"],
+    ["👨", males,          "Мушких"],
+    ["👩", females,        "Женских"],
+    ["✝",  deceased,       "Преминулих"],
+    ["👪", withChildren,   "Са дјецом"],
   ];
 
   const TABS = [
-    { id: "stats",    label: "Statistika" },
-    { id: "requests", label: "Lista zahtjeva" },
+    { id: "stats",    label: "Статистика" },
+    { id: "requests", label: "Листа захтјева" },
   ];
 
   return (
