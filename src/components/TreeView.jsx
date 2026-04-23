@@ -63,7 +63,7 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
         <button className="tree-ctrl-btn" onClick={() => setScale(0.85)}><Icon name="reset" size={16} /></button>
       </div>
 
-      <div className="tree-legend">
+      <div className="tree-legend" style={{ top: "1rem", right: "1rem", left: "auto" }}>
         <div className="tree-legend-title">🌳 Додеровићи — Пољана</div>
         <div className="legend-row">
           <div className="legend-dot" style={{ background: "var(--male-bg)", border: "1.5px solid var(--male-border)" }} />
