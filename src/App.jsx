@@ -950,15 +950,12 @@ function AdminPanel({ members, currentUser, onMemberAdded }) {
   const withChildren = members.filter(x => members.some(c => (c.parent_ids || []).includes(x.id))).length;
 
   const tabs = [
-    { id:"stats", label:"Statistika" },
+    { id:"stats",    label:"Statistika" },
     { id:"requests", label:"Lista zahtjeva" },
-    { id:"history", label:"Istorijat" },
-    { id:"gallery", label:"Galerija" },
   ];
 
   return (
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      {/* Sub-tabs */}
       <div style={{display:"flex",borderBottom:"1px solid rgba(200,150,62,.15)",background:"white",padding:"0 1.5rem",gap:".1rem",flexShrink:0}}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setSubTab(t.id)}
@@ -991,41 +988,10 @@ function AdminPanel({ members, currentUser, onMemberAdded }) {
         </div>
       )}
       {subTab === "requests" && <AdminRequestsView members={members} onMemberAdded={onMemberAdded}/>}
-      {subTab === "history" && <HistoryView/>}
-      {subTab === "gallery" && <GalleryView/>}
     </div>
   );
 }
 
-// ─── USER PANEL (tabs za obične korisnike) ────────────────────────────────────
-function UserPanel({ user, members }) {
-  const [subTab, setSubTab] = useState("request");
-  const tabs = [
-    { id:"request", label:"Zahtjev za unos" },
-    { id:"history", label:"Istorijat" },
-    { id:"gallery", label:"Galerija" },
-  ];
-  return (
-    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      <div style={{display:"flex",borderBottom:"1px solid rgba(200,150,62,.15)",background:"white",padding:"0 1.5rem",gap:".1rem",flexShrink:0}}>
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setSubTab(t.id)}
-            style={{
-              padding:".6rem 1rem",fontSize:".68rem",letterSpacing:".08em",textTransform:"uppercase",
-              border:"none",borderBottom:`2px solid ${subTab===t.id?"var(--gold)":"transparent"}`,
-              background:"none",color:subTab===t.id?"var(--gold-dark)":"#aaa",cursor:"pointer",
-              transition:"all .15s",fontFamily:"'Josefin Sans',sans-serif"
-            }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-      {subTab === "request" && <RequestFormView user={user} members={members}/>}
-      {subTab === "history" && <HistoryView/>}
-      {subTab === "gallery" && <GalleryView/>}
-    </div>
-  );
-}
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App() {
@@ -1123,21 +1089,25 @@ export default function App() {
   if (!user) return <><style>{styles}</style><LoginPage onLogin={setUser}/></>;
 
   const nav = [
-    { id:"tree", icon:"tree", label:"Porodično stablo" },
-    { id:"list", icon:"users", label:"Lista članova" },
+    { id:"tree",     icon:"tree",    label:"Porodično stablo" },
+    { id:"list",     icon:"users",   label:"Lista članova" },
     ...(isAdmin
-      ? [{ id:"admin", icon:"shield", label:"Admin panel", badge: pendingCount > 0 ? pendingCount : null }]
-      : [{ id:"user-panel", icon:"inbox", label:"Moj prostor" }]
+      ? [{ id:"admin",   icon:"shield",  label:"Admin panel", badge: pendingCount > 0 ? pendingCount : null }]
+      : [{ id:"zahtjev", icon:"inbox",   label:"Zahtjev za unos" }]
     ),
+    { id:"istorijat", icon:"history", label:"Istorijat" },
+    { id:"galerija",  icon:"image",   label:"Galerija" },
   ];
 
   const displayName = user?.profile?.full_name || user?.email || "Korisnik";
 
   const topbarTitles = {
-    tree: "Porodično Stablo — Додеровићи",
-    list: "Lista članova",
-    admin: "Admin Panel",
-    "user-panel": "Moj prostor",
+    tree:      "Porodično Stablo — Додеровићи",
+    list:      "Lista članova",
+    admin:     "Admin Panel",
+    zahtjev:   "Zahtjev za unos",
+    istorijat: "Istorijat porodice Додеровић",
+    galerija:  "Galerija",
   };
 
   return (
@@ -1174,7 +1144,7 @@ export default function App() {
             <div className="topbar-title">{topbarTitles[view] || ""}</div>
             <div className="topbar-actions">
               <span style={{fontSize:".7rem",color:"#aaa"}}>{members.length} članova</span>
-              {isAdmin && view !== "admin" && (
+              {isAdmin && view !== "admin" && view !== "istorijat" && view !== "galerija" && (
                 <button className="btn btn-primary" onClick={() => { setEditMember(null); setShowModal(true); }}>
                   <Icon name="plus" size={13}/>Novi član
                 </button>
@@ -1182,10 +1152,12 @@ export default function App() {
             </div>
           </div>
 
-          {view === "tree" && <TreeView members={members} isAdmin={isAdmin} onEdit={m => { setEditMember(m); setShowModal(true); }} onSaveMember={handleSaveMember} onDelete={handleDelete} selected={selected} onSelect={setSelected}/>}
-          {view === "list" && <ListView members={members} isAdmin={isAdmin} onEdit={m => { setEditMember(m); setShowModal(true); }} onDelete={handleDelete}/>}
-          {view === "admin" && isAdmin && <AdminPanel members={members} currentUser={user} onMemberAdded={() => { loadMembers(); loadPendingCount(); }}/>}
-          {view === "user-panel" && !isAdmin && <UserPanel user={user} members={members}/>}
+          {view === "tree"      && <TreeView members={members} isAdmin={isAdmin} onEdit={m => { setEditMember(m); setShowModal(true); }} onSaveMember={handleSaveMember} onDelete={handleDelete} selected={selected} onSelect={setSelected}/>}
+          {view === "list"      && <ListView members={members} isAdmin={isAdmin} onEdit={m => { setEditMember(m); setShowModal(true); }} onDelete={handleDelete}/>}
+          {view === "admin"     && isAdmin  && <AdminPanel members={members} currentUser={user} onMemberAdded={() => { loadMembers(); loadPendingCount(); }}/>}
+          {view === "zahtjev"   && !isAdmin && <RequestFormView user={user} members={members}/>}
+          {view === "istorijat" && <HistoryView/>}
+          {view === "galerija"  && <GalleryView/>}
         </div>
       </div>
 
