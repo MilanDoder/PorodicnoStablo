@@ -1,11 +1,24 @@
 import { useState } from "react";
 import Icon from "./Icon";
 
+// Format opcije: "Ime Prezime (otac) · 1955."
+function memberLabel(m, members) {
+  const otac   = members.find(p => (m.parent_ids || []).includes(p.id) && p.gender === "male");
+  const godina = m.birth_year ? ` · ${m.birth_year}.` : "";
+  const imeOca = otac ? ` (${otac.first_name})` : "";
+  return `${m.first_name} ${m.last_name}${imeOca}${godina}`;
+}
+
 export default function MemberModal({ member, members, onSave, onClose }) {
+  const existingChildIds = member
+    ? members.filter(m => (m.parent_ids || []).includes(member.id)).map(m => m.id)
+    : [];
+
   const [f, setF] = useState(member || {
     first_name: "", last_name: "Додеровић", birth_year: "", death_year: "",
     gender: "male", spouse_id: null, notes: "", parent_ids: [],
   });
+  const [childIds, setChildIds] = useState(existingChildIds);
   const [saving, setSaving] = useState(false);
 
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -14,7 +27,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
   const handleSave = async () => {
     if (!f.first_name) return;
     setSaving(true);
-    await onSave(f);
+    await onSave(f, childIds);
     setSaving(false);
   };
 
@@ -46,7 +59,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
               <label className="form-label">Supružnik</label>
               <select className="form-select" value={f.spouse_id || ""} onChange={e => set("spouse_id", e.target.value ? parseInt(e.target.value) : null)}>
                 <option value="">— bez supružnika —</option>
-                {others.map(m => <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>)}
+                {others.map(m => <option key={m.id} value={m.id}>{memberLabel(m, members)}</option>)}
               </select>
             </div>
             <div className="form-field">
@@ -57,19 +70,47 @@ export default function MemberModal({ member, members, onSave, onClose }) {
               <label className="form-label">God. smrti</label>
               <input className="form-input" type="number" value={f.death_year || ""} onChange={e => set("death_year", e.target.value || null)} placeholder="prazno ako je živ/a" />
             </div>
+
+            {/* ── Roditelji ── */}
             <div className="form-field full">
               <label className="form-label">Roditelji</label>
               <select
                 className="form-select"
                 multiple
-                style={{ height: 80 }}
+                style={{ height: 100 }}
                 value={(f.parent_ids || []).map(String)}
                 onChange={e => set("parent_ids", Array.from(e.target.selectedOptions, o => parseInt(o.value)))}
               >
-                {others.map(m => <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>)}
+                {others.map(m => (
+                  <option key={m.id} value={m.id}>{memberLabel(m, members)}</option>
+                ))}
               </select>
-              <span style={{ fontSize: ".62rem", color: "#999", marginTop: 3 }}>Ctrl+klik za više roditelja</span>
+              <span style={{ fontSize: ".62rem", color: "#999", marginTop: 3 }}>
+                Ctrl+klik za više roditelja · trenutno: {(f.parent_ids || []).length === 0 ? "nema" : others.filter(m => (f.parent_ids || []).includes(m.id)).map(m => m.first_name).join(", ")}
+              </span>
             </div>
+
+            {/* ── Djeca (samo pri editovanju) ── */}
+            {member && (
+              <div className="form-field full">
+                <label className="form-label">Djeca</label>
+                <select
+                  className="form-select"
+                  multiple
+                  style={{ height: 100 }}
+                  value={childIds.map(String)}
+                  onChange={e => setChildIds(Array.from(e.target.selectedOptions, o => parseInt(o.value)))}
+                >
+                  {others.map(m => (
+                    <option key={m.id} value={m.id}>{memberLabel(m, members)}</option>
+                  ))}
+                </select>
+                <span style={{ fontSize: ".62rem", color: "#999", marginTop: 3 }}>
+                  Ctrl+klik za više djece · trenutno: {childIds.length === 0 ? "nema" : others.filter(m => childIds.includes(m.id)).map(m => m.first_name).join(", ")}
+                </span>
+              </div>
+            )}
+
             <div className="form-field full">
               <label className="form-label">Beleške</label>
               <textarea className="form-textarea" value={f.notes || ""} onChange={e => set("notes", e.target.value)} />
