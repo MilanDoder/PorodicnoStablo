@@ -150,131 +150,151 @@ export default function App() {
   };
 
   const handleExportPDF = () => {
-    // Dinamički učitaj jsPDF iz CDN-a
-    const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-    script.onload = () => {
+    const load = () => {
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
+      // ── Transliteracija ćirilice → latinica ─────────────────────────────
+      const CYR = {
+        'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Ђ':'Dj','Е':'E','Ж':'Z','З':'Z',
+        'И':'I','Ј':'J','К':'K','Л':'L','Љ':'Lj','М':'M','Н':'N','Њ':'Nj','О':'O',
+        'П':'P','Р':'R','С':'S','Т':'T','Ћ':'C','У':'U','Ф':'F','Х':'H','Ц':'C',
+        'Ч':'Ch','Џ':'Dz','Ш':'S',
+        'а':'a','б':'b','в':'v','г':'g','д':'d','ђ':'dj','е':'e','ж':'z','з':'z',
+        'и':'i','ј':'j','к':'k','л':'l','љ':'lj','м':'m','н':'n','њ':'nj','о':'o',
+        'п':'p','р':'r','с':'s','т':'t','ћ':'c','у':'u','ф':'f','х':'h','ц':'c',
+        'ч':'ch','џ':'dz','ш':'s',
+      };
+      const t = (str) => String(str ?? "").replace(/./g, c => CYR[c] ?? c);
+
+      // ── Setup ────────────────────────────────────────────────────────────
+      const doc   = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       const pageW = doc.internal.pageSize.getWidth();
-      const gold  = [139, 90, 43];
-      const ink   = [26, 16, 8];
-      const gray  = [120, 110, 100];
+      const pageH = doc.internal.pageSize.getHeight();
+      const PAD   = 10;
+      const LINEH = 6.5;
 
-      // ── Naslov ──
+      // 4 kolone: Ime i prezime | Godiste | Roditelji | Koleno
+      const cols = [
+        { label: "Ime i prezime", x: PAD,          w: 90  },
+        { label: "Godiste",       x: PAD + 90,      w: 30  },
+        { label: "Roditelji",     x: PAD + 90 + 30, w: 90  },
+        { label: "Koleno",        x: PAD + 90 + 30 + 90, w: 25 },
+      ];
+
+      const GOLD  = [139, 90, 43];
+      const INK   = [26, 16, 8];
+      const GRAY  = [110, 100, 90];
+      const CREAM = [248, 243, 232];
+
+      // ── Naslov ──────────────────────────────────────────────────────────
       doc.setFillColor(26, 16, 8);
       doc.rect(0, 0, pageW, 22, "F");
       doc.setTextColor(232, 184, 90);
-      doc.setFontSize(18);
-      doc.text("Породично стablo — Додеровићи", pageW / 2, 10, { align: "center" });
+      doc.setFontSize(16);
+      doc.setFont(undefined, "bold");
+      doc.text("Porodicno stablo - Doderovici", pageW / 2, 10, { align: "center" });
       doc.setFontSize(8);
+      doc.setFont(undefined, "normal");
       doc.setTextColor(180, 150, 80);
-      doc.text("Пољана · Породична архива", pageW / 2, 17, { align: "center" });
+      doc.text("Poljana · Porodicna arhiva", pageW / 2, 17, { align: "center" });
 
-      // ── Grupiši po kolenima ──
-      const byGen = {};
-      members.forEach(m => {
-        const k = m.generational_line || "—";
-        if (!byGen[k]) byGen[k] = [];
-        byGen[k].push(m);
+      let y = 28;
+
+      // ── Funkcija za crtanje zaglavlja tabele ─────────────────────────────
+      const drawTableHeader = () => {
+        doc.setFillColor(220, 200, 160);
+        doc.rect(PAD, y, pageW - PAD * 2, 7, "F");
+        doc.setTextColor(...INK);
+        doc.setFontSize(7);
+        doc.setFont(undefined, "bold");
+        cols.forEach(col => doc.text(col.label, col.x + 1, y + 5));
+        doc.setDrawColor(...GOLD);
+        doc.setLineWidth(0.3);
+        doc.line(PAD, y + 7, pageW - PAD, y + 7);
+        y += 9;
+      };
+
+      // ── Sortiraj sve članove po kolenu pa imenu ──────────────────────────
+      const sorted = [...members].sort((a, b) => {
+        const ga = a.generational_line ?? 999;
+        const gb = b.generational_line ?? 999;
+        if (ga !== gb) return ga - gb;
+        return t(a.first_name).localeCompare(t(b.first_name));
       });
 
-      const sortedGens = Object.keys(byGen).sort((a, b) => {
-        if (a === "—") return 1;
-        if (b === "—") return -1;
-        return parseInt(a) - parseInt(b);
-      });
+      drawTableHeader();
 
-      let y = 30;
-      const lineH   = 6;
-      const colW    = pageW / 3;
-      const padLeft = 10;
-
-      sortedGens.forEach(gen => {
-        const genMembers = byGen[gen];
-
-        // Provjeri da li ima mjesta na stranici
-        if (y + 10 + genMembers.length * lineH > doc.internal.pageSize.getHeight() - 10) {
+      sorted.forEach((m, i) => {
+        if (y + LINEH > pageH - 12) {
           doc.addPage();
           y = 15;
+          drawTableHeader();
         }
 
-        // Naslov kolena
-        doc.setFillColor(...gold);
-        doc.rect(padLeft, y, pageW - padLeft * 2, 7, "F");
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(9);
+        // Izmjenični red
+        if (i % 2 === 0) {
+          doc.setFillColor(...CREAM);
+          doc.rect(PAD, y - 4, pageW - PAD * 2, LINEH, "F");
+        }
+
+        const roditelji = members
+          .filter(p => (m.parent_ids || []).includes(p.id))
+          .map(p => t(p.first_name))
+          .join(", ") || "—";
+
+        const godine = m.birth_year
+          ? `${m.birth_year}${m.death_year ? ` - ${m.death_year}` : ""}`
+          : "—";
+
+        const koleno = m.generational_line ? `${m.generational_line}.` : "—";
+
+        doc.setFontSize(7.5);
         doc.setFont(undefined, "bold");
-        const genLabel = gen === "—" ? "Без колена" : `${gen}. колено`;
-        doc.text(`${genLabel}  (${genMembers.length} чланова)`, padLeft + 3, y + 5);
-        y += 9;
+        doc.setTextColor(...INK);
+        doc.text(t(`${m.first_name} ${m.last_name}`), cols[0].x + 1, y);
 
-        // Kolone: Ime | Godišta | Roditelji
-        doc.setTextColor(...gray);
-        doc.setFontSize(6.5);
         doc.setFont(undefined, "normal");
-        doc.text("Ime i prezime", padLeft + 2, y);
-        doc.text("Godišta", padLeft + colW, y);
-        doc.text("Roditelji", padLeft + colW * 2, y);
-        y += 1;
-        doc.setDrawColor(...gold);
-        doc.setLineWidth(0.2);
-        doc.line(padLeft, y, pageW - padLeft, y);
-        y += 3;
+        doc.setTextColor(...GRAY);
+        doc.text(godine,   cols[1].x + 1, y);
+        doc.text(roditelji, cols[2].x + 1, y);
+        doc.text(koleno,   cols[3].x + 1, y);
 
-        genMembers.forEach((m, i) => {
-          if (y > doc.internal.pageSize.getHeight() - 12) {
-            doc.addPage();
-            y = 15;
-          }
-
-          // Izmjenični red
-          if (i % 2 === 0) {
-            doc.setFillColor(248, 243, 232);
-            doc.rect(padLeft, y - 3.5, pageW - padLeft * 2, lineH, "F");
-          }
-
-          doc.setTextColor(...ink);
-          doc.setFontSize(7.5);
-          doc.setFont(undefined, "bold");
-          doc.text(`${m.first_name} ${m.last_name}`, padLeft + 2, y);
-
-          doc.setFont(undefined, "normal");
-          doc.setTextColor(...gray);
-          const godine = m.birth_year
-            ? `${m.birth_year}${m.death_year ? ` – ${m.death_year}` : ""}`
-            : "—";
-          doc.text(godine, padLeft + colW, y);
-
-          const roditelji = members
-            .filter(p => (m.parent_ids || []).includes(p.id))
-            .map(p => p.first_name)
-            .join(", ") || "—";
-          doc.text(roditelji, padLeft + colW * 2, y);
-
-          y += lineH;
-        });
-
-        y += 4;
+        y += LINEH;
       });
 
-      // ── Footer ──
+      // ── Separator linije između kolona ──────────────────────────────────
+      // (vertikalne linije kroz cijeli dokument - nije moguće retroaktivno,
+      //  ali dodajemo tanke linije na svakoj stranici)
       const totalPages = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
+      for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        doc.setDrawColor(...GOLD);
+        doc.setLineWidth(0.1);
+        // vertikalne linije kolona
+        [cols[1].x, cols[2].x, cols[3].x].forEach(x => {
+          doc.line(x, 22, x, pageH - 8);
+        });
+        // footer
         doc.setFontSize(6);
-        doc.setTextColor(...gray);
+        doc.setTextColor(...GRAY);
         doc.text(
-          `Генерисано: ${new Date().toLocaleDateString("sr-Latn")} · Укупно чланова: ${members.length}`,
-          padLeft, doc.internal.pageSize.getHeight() - 4
+          `Generisano: ${new Date().toLocaleDateString("sr-Latn")} · Ukupno clanova: ${members.length}`,
+          PAD, pageH - 4
         );
-        doc.text(`${i} / ${totalPages}`, pageW - padLeft, doc.internal.pageSize.getHeight() - 4, { align: "right" });
+        doc.text(`${p} / ${totalPages}`, pageW - PAD, pageH - 4, { align: "right" });
       }
 
       doc.save("Doderovici-porodicno-stablo.pdf");
     };
-    document.head.appendChild(script);
+
+    if (window.jspdf) {
+      load();
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      script.onload = load;
+      document.head.appendChild(script);
+    }
   };
   if (loading) {
     return (
@@ -288,14 +308,14 @@ export default function App() {
   if (!user) return <LoginPage onLogin={setUser} />;
 
   const nav = [
-    { id: "tree",      icon: "tree",    label: "Porodično stablo" },
-    { id: "list",      icon: "users",   label: "Lista članova" },
+    { id: "tree",      icon: "tree",    label: "Породично стабло" },
+    { id: "list",      icon: "users",   label: "Листа чланова" },
     ...(isAdmin
-      ? [{ id: "admin",    icon: "shield",  label: "Admin panel", badge: pendingCount > 0 ? pendingCount : null }]
-      : [{ id: "zahtjev",  icon: "inbox",   label: "Zahtjev za unos" }]
+      ? [{ id: "admin",    icon: "shield",  label: "Админ панел", badge: pendingCount > 0 ? pendingCount : null }]
+      : [{ id: "zahtjev",  icon: "inbox",   label: "Захтјев за унос члана породице" }]
     ),
-    { id: "istorijat", icon: "history", label: "Istorijat" },
-    { id: "galerija",  icon: "image",   label: "Galerija" },
+    { id: "istorijat", icon: "history", label: "Историја" },
+    { id: "galerija",  icon: "image",   label: "Галерија" },
   ];
 
   const displayName = user?.profile?.full_name || user?.email || "Korisnik";
@@ -314,7 +334,7 @@ export default function App() {
           <div className="sidebar-avatar">{displayName[0]?.toUpperCase()}</div>
           <div>
             <div className="sidebar-username">{displayName}</div>
-            <div className="sidebar-role">{isAdmin ? "Administrator" : "Korisnik"}</div>
+            <div className="sidebar-role">{isAdmin ? "Администратор" : "Корисник"}</div>
           </div>
         </div>
         <nav className="sidebar-nav">
@@ -343,7 +363,7 @@ export default function App() {
             </button>
             {isAdmin && !["admin", "istorijat", "galerija"].includes(view) && (
               <button className="btn btn-primary" onClick={() => openModal(null)}>
-                <Icon name="plus" size={13} />Novi član
+                <Icon name="plus" size={13} />Нови члан
               </button>
             )}
           </div>
