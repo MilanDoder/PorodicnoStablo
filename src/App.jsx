@@ -311,12 +311,13 @@ export default function App() {
   const nav = [
     { id: "tree",      icon: "tree",    label: "Породично стабло" },
     { id: "list",      icon: "users",   label: "Листа чланова" },
+        { id: "istorijat", icon: "history", label: "Историја" },
+    { id: "galerija",  icon: "image",   label: "Галерија" },
     ...(isAdmin
       ? [{ id: "admin",    icon: "shield",  label: "Админ панел", badge: pendingCount > 0 ? pendingCount : null }]
       : [{ id: "zahtjev",  icon: "inbox",   label: "Захтјев за унос члана породице" }]
-    ),
-    { id: "istorijat", icon: "history", label: "Историја" },
-    { id: "galerija",  icon: "image",   label: "Галерија" },
+    )
+
   ];
 
   const displayName = user?.profile?.full_name || user?.email || "Korisnik";
