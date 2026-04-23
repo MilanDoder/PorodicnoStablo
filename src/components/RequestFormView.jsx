@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
 
+
 const STATUS_LABEL = { pending: "Na čekanju", approved: "Prihvaćen", rejected: "Odbijen" };
 const STATUS_CLASS = { pending: "status-pending", approved: "status-approved", rejected: "status-rejected" };
 const STATUS_ICON  = { pending: "clock", approved: "check", rejected: "x" };
