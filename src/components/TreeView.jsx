@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Icon from "./Icon";
 import TreeNode from "./TreeNode";
 import DetailPanel from "./DetailPanel";
@@ -7,6 +7,10 @@ import MemberModal from "./MemberModal";
 export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDelete, selected, onSelect }) {
   const [addChildOf, setAddChildOf] = useState(null);
   const [scale, setScale] = useState(0.85);
+  const canvasRef = useRef(null);
+  const dragging  = useRef(false);
+  const startPos  = useRef({ x: 0, y: 0 });
+  const scrollPos = useRef({ left: 0, top: 0 });
 
   const roots = members.filter(
     m => !(m.parent_ids || []).length || !(m.parent_ids || []).some(pid => members.find(x => x.id === pid))
@@ -25,11 +29,39 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
     setAddChildOf(null);
   };
 
+  // ── Drag to pan ──────────────────────────────────────────────────────────
+  const onMouseDown = (e) => {
+    if (e.button !== 0) return;
+    dragging.current = true;
+    startPos.current = { x: e.clientX, y: e.clientY };
+    scrollPos.current = { left: canvasRef.current.scrollLeft, top: canvasRef.current.scrollTop };
+    canvasRef.current.style.cursor = "grabbing";
+  };
+  const onMouseMove = (e) => {
+    if (!dragging.current) return;
+    const dx = e.clientX - startPos.current.x;
+    const dy = e.clientY - startPos.current.y;
+    canvasRef.current.scrollLeft = scrollPos.current.left - dx;
+    canvasRef.current.scrollTop  = scrollPos.current.top  - dy;
+  };
+  const onMouseUp = () => {
+    dragging.current = false;
+    if (canvasRef.current) canvasRef.current.style.cursor = "grab";
+  };
+
   return (
     <div className="tree-wrap">
-      <div className="tree-canvas">
-        <div className="tree-inner" style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
-          <div style={{ display: "flex", gap: "60px", alignItems: "flex-start", flexWrap: "wrap" }}>
+      <div
+        className="tree-canvas"
+        ref={canvasRef}
+        style={{ cursor: "grab" }}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseUp}
+      >
+        <div className="tree-inner" style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}>
+          <div style={{ display: "flex", gap: "60px", alignItems: "flex-start", flexWrap: "nowrap", justifyContent: "center" }}>
             {primaryRoots.map(root => (
               <div key={root.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px" }}>
                 <div style={{ fontSize: ".6rem", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--gold-dark)", marginBottom: "6px" }}>
