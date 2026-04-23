@@ -24,6 +24,13 @@ const Icon = ({ name, size = 18 }) => {
     reset: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>,
     spinner: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{animation:"spin 1s linear infinite"}}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
     mail: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
+    inbox: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>,
+    check: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>,
+    x: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+    clock: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+    history: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>,
+    image: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
+    send: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
   };
   return icons[name] || null;
 };
@@ -39,6 +46,7 @@ const styles = `
     --male-bg: #ddeeff; --male-border: #4a7fa8;
     --female-bg: #fde8f0; --female-border: #b06080;
     --shadow: 0 4px 24px rgba(26,16,8,0.15);
+    --green: #2d6a4f; --red: #8b3a1a;
   }
   body { font-family:'Josefin Sans',sans-serif; background:var(--cream); color:var(--ink); }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -79,10 +87,11 @@ const styles = `
   .sidebar-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--gold-dark),var(--gold)); display:flex; align-items:center; justify-content:center; color:white; font-size:.75rem; flex-shrink:0; }
   .sidebar-username { font-size:.75rem; color:rgba(255,255,255,.8); }
   .sidebar-role { font-size:.58rem; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); }
-  .sidebar-nav { flex:1; padding:.75rem 0; }
+  .sidebar-nav { flex:1; padding:.75rem 0; overflow-y:auto; }
   .nav-item { display:flex; align-items:center; gap:.6rem; padding:.65rem 1rem; color:rgba(255,255,255,.45); font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:all .2s; border-left:2px solid transparent; background:none; border-right:none; border-top:none; border-bottom:none; width:100%; text-align:left; }
   .nav-item:hover { color:var(--gold-light); background:rgba(200,150,62,.05); }
   .nav-item.active { color:var(--gold-light); border-left-color:var(--gold); background:rgba(200,150,62,.08); }
+  .nav-badge { margin-left:auto; background:var(--rust); color:white; font-size:.55rem; padding:.1rem .35rem; border-radius:10px; }
   .sidebar-footer { padding:.8rem 1rem; border-top:1px solid rgba(200,150,62,.1); }
   .logout-btn { display:flex; align-items:center; gap:.5rem; color:rgba(255,255,255,.3); font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; background:none; border:none; transition:color .2s; }
   .logout-btn:hover { color:var(--rust); }
@@ -96,6 +105,7 @@ const styles = `
   .btn-ghost { background:transparent; color:var(--gold-dark); border:1px solid rgba(200,150,62,.4); }
   .btn-ghost:hover { background:rgba(200,150,62,.05); border-color:var(--gold); }
   .btn-danger { background:rgba(139,58,26,.1); color:var(--rust); border:1px solid rgba(139,58,26,.2); }
+  .btn-success { background:rgba(45,106,79,.1); color:var(--green); border:1px solid rgba(45,106,79,.3); }
   .btn-sm { padding:.3rem .6rem; font-size:.62rem; }
 
   /* LOADING */
@@ -187,6 +197,54 @@ const styles = `
   .stat-lbl { font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:#888; margin-top:.15rem; }
   .section-title { font-family:'Cormorant Garamond',serif; font-size:1.1rem; margin-bottom:.75rem; color:var(--ink); }
   .info-box { background:white; border:1px solid rgba(200,150,62,.2); padding:1rem; font-size:.8rem; line-height:1.8; color:#555; }
+
+  /* REQUESTS */
+  .req-wrap { flex:1; overflow-y:auto; padding:1.5rem; }
+  .req-card { background:white; border:1px solid rgba(200,150,62,.2); margin-bottom:1rem; box-shadow:0 2px 8px rgba(26,16,8,.05); animation:fadeUp .3s ease; }
+  .req-card-head { padding:.75rem 1rem; border-bottom:1px solid rgba(200,150,62,.1); display:flex; justify-content:space-between; align-items:center; }
+  .req-card-name { font-family:'Cormorant Garamond',serif; font-size:1.05rem; }
+  .req-card-meta { font-size:.65rem; color:#999; }
+  .req-card-body { padding:.75rem 1rem; display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:.5rem; }
+  .req-field { font-size:.72rem; }
+  .req-field-key { color:#999; font-size:.6rem; letter-spacing:.08em; text-transform:uppercase; }
+  .req-card-foot { padding:.6rem 1rem; border-top:1px solid rgba(200,150,62,.08); display:flex; gap:.5rem; justify-content:flex-end; background:rgba(245,239,224,.4); }
+  .status-badge { display:inline-flex; align-items:center; gap:.3rem; font-size:.62rem; padding:.15rem .5rem; border:1px solid; letter-spacing:.05em; text-transform:uppercase; }
+  .status-pending { color:#7a5c00; border-color:#c8963e; background:rgba(200,150,62,.1); }
+  .status-approved { color:var(--green); border-color:rgba(45,106,79,.4); background:rgba(45,106,79,.08); }
+  .status-rejected { color:var(--rust); border-color:rgba(139,58,26,.3); background:rgba(139,58,26,.06); }
+  .empty-state { text-align:center; padding:4rem 2rem; color:#bbb; }
+  .empty-state-icon { font-size:3rem; margin-bottom:1rem; }
+  .empty-state-text { font-family:'Cormorant Garamond',serif; font-size:1.2rem; color:#aaa; }
+
+  /* HISTORY */
+  .history-wrap { flex:1; overflow-y:auto; padding:1.5rem; }
+  .timeline { position:relative; padding-left:2rem; }
+  .timeline::before { content:''; position:absolute; left:.5rem; top:0; bottom:0; width:2px; background:linear-gradient(to bottom,var(--gold),transparent); }
+  .tl-item { position:relative; margin-bottom:1.5rem; }
+  .tl-dot { position:absolute; left:-1.65rem; top:.2rem; width:12px; height:12px; border-radius:50%; border:2px solid var(--gold); background:var(--cream); }
+  .tl-date { font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--gold-dark); margin-bottom:.25rem; }
+  .tl-card { background:white; border:1px solid rgba(200,150,62,.18); padding:.75rem 1rem; font-size:.78rem; line-height:1.6; color:#444; box-shadow:0 1px 4px rgba(26,16,8,.05); }
+  .tl-card strong { color:var(--ink); }
+  .tl-tag { display:inline-block; font-size:.58rem; padding:.1rem .4rem; border:1px solid rgba(200,150,62,.3); color:var(--gold-dark); margin-left:.4rem; text-transform:uppercase; letter-spacing:.06em; }
+
+  /* GALLERY */
+  .gallery-wrap { flex:1; overflow-y:auto; padding:1.5rem; }
+  .gallery-intro { font-family:'Cormorant Garamond',serif; font-size:1rem; font-style:italic; color:#888; margin-bottom:1.25rem; line-height:1.6; }
+  .gallery-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1rem; }
+  .gallery-item { background:white; border:1px solid rgba(200,150,62,.2); overflow:hidden; box-shadow:0 2px 8px rgba(26,16,8,.07); transition:transform .2s,box-shadow .2s; }
+  .gallery-item:hover { transform:translateY(-3px); box-shadow:0 6px 20px rgba(26,16,8,.12); }
+  .gallery-img { width:100%; height:200px; object-fit:cover; display:block; }
+  .gallery-img-placeholder { width:100%; height:200px; background:linear-gradient(135deg,#e8d8b0,#d4c090); display:flex; align-items:center; justify-content:center; font-size:3rem; }
+  .gallery-caption { padding:.65rem .85rem; border-top:1px solid rgba(200,150,62,.1); }
+  .gallery-caption-title { font-family:'Cormorant Garamond',serif; font-size:.95rem; font-weight:600; color:var(--ink); }
+  .gallery-caption-sub { font-size:.65rem; color:#999; margin-top:.15rem; }
+
+  /* REQUEST FORM (user) */
+  .req-form-wrap { flex:1; overflow-y:auto; padding:1.5rem; }
+  .req-form-card { background:white; border:1px solid rgba(200,150,62,.2); padding:1.5rem; max-width:600px; box-shadow:var(--shadow); }
+  .req-form-title { font-family:'Cormorant Garamond',serif; font-size:1.3rem; margin-bottom:.4rem; }
+  .req-form-desc { font-size:.75rem; color:#777; line-height:1.6; margin-bottom:1.25rem; }
+  .req-success { background:rgba(45,106,79,.08); border:1px solid rgba(45,106,79,.3); color:var(--green); padding:.8rem 1rem; font-size:.8rem; margin-bottom:1rem; }
 `;
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
@@ -203,12 +261,7 @@ function LoginPage({ onLogin }) {
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) { setError("Pogrešan email ili lozinka."); return; }
-      // Dohvati profil korisnika
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", data.user.id)
-        .single();
+      const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
       onLogin({ ...data.user, profile });
     } catch (e) {
       setError("Greška pri povezivanju.");
@@ -530,27 +583,446 @@ function ListView({ members, isAdmin, onEdit, onDelete }) {
   );
 }
 
-// ─── ADMIN VIEW ───────────────────────────────────────────────────────────────
-function AdminPanel({ members, currentUser }) {
+// ─── GALLERY VIEW ─────────────────────────────────────────────────────────────
+function GalleryView() {
+  // Primjer slika — zamijeniti pravim URL-ovima iz Supabase Storage
+  const photos = [
+    {
+      id: 1,
+      url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80",
+      title: "Пољана, 1952. година",
+      sub: "Pogled na selo u jesen",
+    },
+    {
+      id: 2,
+      url: "https://images.unsplash.com/photo-1472791108553-c9405341e398?w=600&q=80",
+      title: "Породични збор, 1971.",
+      sub: "Прослава крсне славе — Додеровићи",
+    },
+    {
+      id: 3,
+      url: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=600&q=80",
+      title: "Стара кућа, 1938.",
+      sub: "Прадједова кућа у Пољани",
+    },
+  ];
+
+  return (
+    <div className="gallery-wrap">
+      <p className="gallery-intro">
+        Fotografije i dokumenti iz arhive породице Додеровић. Снимци покривају период
+        од почетка 20. вијека до данас — кућа, земља, збори и свечаности.
+      </p>
+      <div className="gallery-grid">
+        {photos.map(p => (
+          <div className="gallery-item" key={p.id}>
+            <img
+              className="gallery-img"
+              src={p.url}
+              alt={p.title}
+              onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }}
+            />
+            <div className="gallery-img-placeholder" style={{display:"none"}}>📷</div>
+            <div className="gallery-caption">
+              <div className="gallery-caption-title">{p.title}</div>
+              <div className="gallery-caption-sub">{p.sub}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── HISTORY VIEW ─────────────────────────────────────────────────────────────
+function HistoryView() {
+  const events = [
+    { date: "Oktobar 2017.", tag: "Dopuna", text: <><strong>Бранко Светозаров Додеровић</strong> dopunio porodično stablo novim granama i dodao podatke o potomcima koji žive van Srbije.</> },
+    { date: "Novembar 1990.", tag: "Osnivanje", text: <><strong>Мићо Обрадов Додеровић</strong> završio izradu originalnog rukopisa rodoslova. Rukopis sadrži više od četiri generacije evidentiranih članova из Пољане и околних sela.</> },
+    { date: "1971.", tag: "Događaj", text: <>Porodični zbor u Пољани — proslava krсне slavе. Prisustvovalo je više od 60 članova porodice iz Srbije i dijaspore. Fotografije sa zbora čuvaju se u porodičnoj arhivi.</> },
+    { date: "1952.", tag: "Istorija", text: <>Seoba dijela porodice Додеровић iz planinske Пољане prema Užicu u potrazi za boljim uslovima života. Ova grana zadržava prezime i vezu sa rodnim krajem.</> },
+    { date: "1938.", tag: "Istorija", text: <>Izgradnja stare porodične kuće koja i danas stoji u Пољани. Kućа je bila centar porodičnog života za tri generacije — djeda, oca i sinova.</> },
+    { date: "Kraj 19. vijeka", tag: "Poreklo", text: <>Najstariji evidentirani preci Додеровић dolaze iz šumadijskog kraja. Prezime je patronimskog porekla — nastalo od ličnog imena претка.</> },
+  ];
+
+  return (
+    <div className="history-wrap">
+      <div className="section-title" style={{marginBottom:"1.25rem"}}>Историјат породице Додеровић</div>
+      <div className="timeline">
+        {events.map((ev, i) => (
+          <div className="tl-item" key={i}>
+            <div className="tl-dot"/>
+            <div className="tl-date">{ev.date} <span className="tl-tag">{ev.tag}</span></div>
+            <div className="tl-card">{ev.text}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── REQUEST FORM (za korisnike) ──────────────────────────────────────────────
+function RequestFormView({ user, members }) {
+  const [f, setF] = useState({
+    first_name:"", last_name:"Додеровић", gender:"male",
+    birth_year:"", death_year:"", notes:"", parent_ids:[], spouse_id:""
+  });
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [myRequests, setMyRequests] = useState([]);
+  const [loadingReqs, setLoadingReqs] = useState(true);
+  const set = (k, v) => setF(p => ({...p, [k]: v}));
+
+  useEffect(() => { loadMyRequests(); }, []);
+
+  const loadMyRequests = async () => {
+    setLoadingReqs(true);
+    const { data } = await supabase
+      .from("data_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setMyRequests(data || []);
+    setLoadingReqs(false);
+  };
+
+  const handleSubmit = async () => {
+    if (!f.first_name) return;
+    setSaving(true);
+    const payload = {
+      user_id: user.id,
+      user_email: user.email,
+      first_name: f.first_name,
+      last_name: f.last_name,
+      gender: f.gender,
+      birth_year: f.birth_year ? parseInt(f.birth_year) : null,
+      death_year: f.death_year ? parseInt(f.death_year) : null,
+      notes: f.notes || null,
+      parent_ids: f.parent_ids,
+      spouse_id: f.spouse_id ? parseInt(f.spouse_id) : null,
+      status: "pending",
+    };
+    const { error } = await supabase.from("data_requests").insert(payload);
+    setSaving(false);
+    if (!error) {
+      setSuccess(true);
+      setF({ first_name:"", last_name:"Додеровић", gender:"male", birth_year:"", death_year:"", notes:"", parent_ids:[], spouse_id:"" });
+      setTimeout(() => setSuccess(false), 5000);
+      loadMyRequests();
+    }
+  };
+
+  const statusLabel = { pending:"Na čekanju", approved:"Prihvaćen", rejected:"Odbijen" };
+  const statusClass = { pending:"status-pending", approved:"status-approved", rejected:"status-rejected" };
+  const statusIcon = { pending:"clock", approved:"check", rejected:"x" };
+
+  return (
+    <div className="req-form-wrap">
+      {/* FORMA */}
+      <div className="req-form-card" style={{marginBottom:"2rem"}}>
+        <div className="req-form-title">Pošaljite zahtjev za unos člana</div>
+        <p className="req-form-desc">
+          Ukoliko znate podatke o članu porodice koji nije evidentiran, popunite formu ispod.
+          Administrator će pregledati vaš zahtjev i odlučiti da li se unese u stablo.
+        </p>
+        {success && <div className="req-success">✓ Zahtjev je uspješno poslat! Administrator će ga pregledati.</div>}
+        <div className="form-grid">
+          <div className="form-field">
+            <label className="form-label">Ime *</label>
+            <input className="form-input" value={f.first_name} onChange={e => set("first_name", e.target.value)} placeholder="npr. Марко"/>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Prezime</label>
+            <input className="form-input" value={f.last_name} onChange={e => set("last_name", e.target.value)}/>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Pol</label>
+            <select className="form-select" value={f.gender} onChange={e => set("gender", e.target.value)}>
+              <option value="male">Muški</option>
+              <option value="female">Ženski</option>
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">God. rođenja</label>
+            <input className="form-input" type="number" value={f.birth_year} onChange={e => set("birth_year", e.target.value)} placeholder="npr. 1955"/>
+          </div>
+          <div className="form-field">
+            <label className="form-label">God. smrti</label>
+            <input className="form-input" type="number" value={f.death_year} onChange={e => set("death_year", e.target.value)} placeholder="prazno ako je živ/a"/>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Supružnik (iz stabla)</label>
+            <select className="form-select" value={f.spouse_id} onChange={e => set("spouse_id", e.target.value)}>
+              <option value="">— bez supružnika —</option>
+              {members.map(m => <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>)}
+            </select>
+          </div>
+          <div className="form-field full">
+            <label className="form-label">Roditelji (iz stabla)</label>
+            <select className="form-select" multiple style={{height:80}}
+              value={(f.parent_ids || []).map(String)}
+              onChange={e => set("parent_ids", Array.from(e.target.selectedOptions, o => parseInt(o.value)))}>
+              {members.map(m => <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>)}
+            </select>
+            <span style={{fontSize:".62rem",color:"#999",marginTop:3}}>Ctrl+klik za više roditelja</span>
+          </div>
+          <div className="form-field full">
+            <label className="form-label">Napomena / Izvor podataka</label>
+            <textarea className="form-textarea" value={f.notes} onChange={e => set("notes", e.target.value)} placeholder="Opisite vezu ili izvor ovih podataka..."/>
+          </div>
+        </div>
+        <div style={{marginTop:"1rem",display:"flex",justifyContent:"flex-end"}}>
+          <button className="btn btn-primary" onClick={handleSubmit} disabled={saving || !f.first_name}>
+            {saving ? <><Icon name="spinner" size={14}/>Slanje...</> : <><Icon name="send" size={14}/>Pošalji zahtjev</>}
+          </button>
+        </div>
+      </div>
+
+      {/* MOJI ZAHTJEVI */}
+      <div className="section-title">Moji zahtjevi</div>
+      {loadingReqs ? (
+        <div style={{textAlign:"center",padding:"2rem",color:"#aaa"}}><Icon name="spinner" size={20}/></div>
+      ) : myRequests.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-state-icon">📭</div>
+          <div className="empty-state-text">Još niste poslali nijedan zahtjev.</div>
+        </div>
+      ) : (
+        myRequests.map(req => (
+          <div className="req-card" key={req.id}>
+            <div className="req-card-head">
+              <span className="req-card-name">{req.first_name} {req.last_name}</span>
+              <span className={`status-badge ${statusClass[req.status]}`}>
+                <Icon name={statusIcon[req.status]} size={10}/>
+                {statusLabel[req.status]}
+              </span>
+            </div>
+            <div className="req-card-body">
+              <div className="req-field"><div className="req-field-key">Pol</div>{req.gender === "male" ? "Muški" : "Ženski"}</div>
+              {req.birth_year && <div className="req-field"><div className="req-field-key">God. rođenja</div>{req.birth_year}.</div>}
+              <div className="req-field"><div className="req-field-key">Poslato</div>{new Date(req.created_at).toLocaleDateString("sr-Latn")}</div>
+            </div>
+            {req.admin_note && (
+              <div style={{padding:".5rem 1rem",fontSize:".72rem",color:"#666",borderTop:"1px solid rgba(200,150,62,.08)"}}>
+                <span style={{color:"var(--gold-dark)",fontWeight:600}}>Admin komentar:</span> {req.admin_note}
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// ─── ADMIN REQUESTS VIEW ──────────────────────────────────────────────────────
+function AdminRequestsView({ members, onMemberAdded }) {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(null);
+  const [noteMap, setNoteMap] = useState({});
+
+  useEffect(() => { loadRequests(); }, []);
+
+  const loadRequests = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("data_requests")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: true });
+    setRequests(data || []);
+    setLoading(false);
+  };
+
+  const handleDecision = async (req, decision) => {
+    setProcessing(req.id);
+    const adminNote = noteMap[req.id] || null;
+
+    if (decision === "approved") {
+      // Unesi člana u bazu
+      const { data: newMember } = await supabase.from("members").insert({
+        first_name: req.first_name,
+        last_name: req.last_name,
+        gender: req.gender,
+        birth_year: req.birth_year,
+        death_year: req.death_year,
+        notes: req.notes,
+        spouse_id: req.spouse_id || null,
+      }).select().single();
+
+      // Upiši roditelje
+      const parentIds = Array.isArray(req.parent_ids) ? req.parent_ids : (req.parent_ids || []);
+      if (newMember && parentIds.length > 0) {
+        await supabase.from("member_parents").insert(
+          parentIds.map(pid => ({ member_id: newMember.id, parent_id: pid }))
+        );
+      }
+      onMemberAdded && onMemberAdded();
+    }
+
+    await supabase.from("data_requests").update({
+      status: decision,
+      admin_note: adminNote,
+      reviewed_at: new Date().toISOString(),
+    }).eq("id", req.id);
+
+    setProcessing(null);
+    loadRequests();
+  };
+
+  const parentNames = (parentIds) => {
+    const ids = Array.isArray(parentIds) ? parentIds : [];
+    return ids.map(pid => {
+      const m = members.find(x => x.id === pid);
+      return m ? `${m.first_name} ${m.last_name}` : `#${pid}`;
+    }).join(", ") || "—";
+  };
+
+  return (
+    <div className="req-wrap">
+      {loading ? (
+        <div style={{textAlign:"center",padding:"3rem",color:"#aaa"}}><Icon name="spinner" size={24}/></div>
+      ) : requests.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-state-icon">✅</div>
+          <div className="empty-state-text">Nema aktivnih zahtjeva.</div>
+          <p style={{fontSize:".75rem",color:"#bbb",marginTop:".5rem"}}>Svi zahtjevi su obrađeni.</p>
+        </div>
+      ) : (
+        <>
+          <div style={{marginBottom:"1rem",fontSize:".75rem",color:"#888"}}>
+            {requests.length} aktivnih zahtjeva na čekanju
+          </div>
+          {requests.map(req => (
+            <div className="req-card" key={req.id}>
+              <div className="req-card-head">
+                <div>
+                  <span className="req-card-name">{req.first_name} {req.last_name}</span>
+                  <span style={{marginLeft:".5rem",fontSize:".65rem",color:"#aaa"}}>od: {req.user_email}</span>
+                </div>
+                <span className="req-card-meta">{new Date(req.created_at).toLocaleDateString("sr-Latn")} · {new Date(req.created_at).toLocaleTimeString("sr-Latn",{hour:"2-digit",minute:"2-digit"})}</span>
+              </div>
+              <div className="req-card-body">
+                <div className="req-field"><div className="req-field-key">Pol</div>{req.gender === "male" ? "👨 Muški" : "👩 Ženski"}</div>
+                {req.birth_year && <div className="req-field"><div className="req-field-key">God. rođenja</div>{req.birth_year}.</div>}
+                {req.death_year && <div className="req-field"><div className="req-field-key">God. smrti</div>{req.death_year}.</div>}
+                <div className="req-field"><div className="req-field-key">Roditelji</div>{parentNames(req.parent_ids)}</div>
+                {req.spouse_id && <div className="req-field"><div className="req-field-key">Supružnik</div>{(() => { const m = members.find(x => x.id === req.spouse_id); return m ? `${m.first_name} ${m.last_name}` : `#${req.spouse_id}`; })()}</div>}
+              </div>
+              {req.notes && (
+                <div style={{padding:".4rem 1rem .6rem",fontSize:".72rem",color:"#666",borderTop:"1px solid rgba(200,150,62,.08)"}}>
+                  <span style={{color:"var(--gold-dark)",fontWeight:600}}>Napomena: </span>{req.notes}
+                </div>
+              )}
+              <div style={{padding:".5rem 1rem",borderTop:"1px solid rgba(200,150,62,.08)"}}>
+                <label style={{fontSize:".6rem",letterSpacing:".08em",textTransform:"uppercase",color:"var(--gold-dark)",display:"block",marginBottom:".3rem"}}>Komentar (opcionalno)</label>
+                <input
+                  className="form-input"
+                  style={{width:"100%",marginBottom:".5rem"}}
+                  placeholder="Komentar pri prihvatanju ili odbijanju..."
+                  value={noteMap[req.id] || ""}
+                  onChange={e => setNoteMap(m => ({...m, [req.id]: e.target.value}))}
+                />
+              </div>
+              <div className="req-card-foot">
+                <button className="btn btn-danger btn-sm" onClick={() => handleDecision(req, "rejected")} disabled={processing === req.id}>
+                  {processing === req.id ? <Icon name="spinner" size={12}/> : <Icon name="x" size={12}/>}
+                  Odbij
+                </button>
+                <button className="btn btn-success btn-sm" onClick={() => handleDecision(req, "approved")} disabled={processing === req.id}>
+                  {processing === req.id ? <Icon name="spinner" size={12}/> : <Icon name="check" size={12}/>}
+                  Prihvati i dodaj u stablo
+                </button>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── ADMIN PANEL ──────────────────────────────────────────────────────────────
+function AdminPanel({ members, currentUser, onMemberAdded }) {
+  const [subTab, setSubTab] = useState("stats");
   const males = members.filter(x => x.gender === "male").length;
   const females = members.filter(x => x.gender === "female").length;
   const deceased = members.filter(x => x.death_year).length;
   const withChildren = members.filter(x => members.some(c => (c.parent_ids || []).includes(x.id))).length;
+
+  const tabs = [
+    { id:"stats", label:"Statistika" },
+    { id:"requests", label:"Lista zahtjeva" },
+    { id:"history", label:"Istorijat" },
+    { id:"gallery", label:"Galerija" },
+  ];
+
   return (
-    <div className="admin-wrap">
-      <div className="stat-row">
-        {[["🌳",members.length,"Članova ukupno"],["👨",males,"Muških"],["👩",females,"Ženskih"],["✝",deceased,"Preminulih"],["👪",withChildren,"Sa djecom"]].map(([e,v,l]) => (
-          <div className="stat-box" key={l}><div style={{fontSize:"1.5rem"}}>{e}</div><div className="stat-val">{v}</div><div className="stat-lbl">{l}</div></div>
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      {/* Sub-tabs */}
+      <div style={{display:"flex",borderBottom:"1px solid rgba(200,150,62,.15)",background:"white",padding:"0 1.5rem",gap:".1rem",flexShrink:0}}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setSubTab(t.id)}
+            style={{
+              padding:".6rem 1rem",fontSize:".68rem",letterSpacing:".08em",textTransform:"uppercase",
+              border:"none",borderBottom:`2px solid ${subTab===t.id?"var(--gold)":"transparent"}`,
+              background:"none",color:subTab===t.id?"var(--gold-dark)":"#aaa",cursor:"pointer",
+              transition:"all .15s",fontFamily:"'Josefin Sans',sans-serif"
+            }}>
+            {t.label}
+          </button>
         ))}
       </div>
-      <div className="section-title">Informacije o dokumentu</div>
-      <div className="info-box">
-        <div><strong>Izvor:</strong> Porodično stablo Додеровићи — Пољана</div>
-        <div><strong>Autor:</strong> Мићо Обрадов Додеровић (do Novembra 1990. godine)</div>
-        <div><strong>Dopunio:</strong> Бранко Светозаров Додеровић (do Oktobra 2017. godine)</div>
-        <div><strong>Napomena:</strong> *1 Тешо — брат по оцу &nbsp;|&nbsp; *2 Драган — брат по оцу</div>
-        <div style={{marginTop:".5rem",color:"#888",fontSize:".75rem"}}>Ulogovani kao: <strong>{currentUser?.email}</strong> · Rola: <strong>{currentUser?.profile?.role}</strong></div>
+
+      {subTab === "stats" && (
+        <div className="admin-wrap">
+          <div className="stat-row">
+            {[["🌳",members.length,"Članova ukupno"],["👨",males,"Muških"],["👩",females,"Ženskih"],["✝",deceased,"Preminulih"],["👪",withChildren,"Sa djecom"]].map(([e,v,l]) => (
+              <div className="stat-box" key={l}><div style={{fontSize:"1.5rem"}}>{e}</div><div className="stat-val">{v}</div><div className="stat-lbl">{l}</div></div>
+            ))}
+          </div>
+          <div className="section-title">Informacije o dokumentu</div>
+          <div className="info-box">
+            <div><strong>Izvor:</strong> Porodično stablo Додеровићи — Пољана</div>
+            <div><strong>Autor:</strong> Мићо Обрадов Додеровић (do Novembra 1990. godine)</div>
+            <div><strong>Dopunio:</strong> Бранко Светозаров Додеровић (do Oktobra 2017. godine)</div>
+            <div><strong>Napomena:</strong> *1 Тешо — брат по оцу &nbsp;|&nbsp; *2 Драган — брат по оцу</div>
+            <div style={{marginTop:".5rem",color:"#888",fontSize:".75rem"}}>Ulogovani kao: <strong>{currentUser?.email}</strong> · Rola: <strong>{currentUser?.profile?.role}</strong></div>
+          </div>
+        </div>
+      )}
+      {subTab === "requests" && <AdminRequestsView members={members} onMemberAdded={onMemberAdded}/>}
+      {subTab === "history" && <HistoryView/>}
+      {subTab === "gallery" && <GalleryView/>}
+    </div>
+  );
+}
+
+// ─── USER PANEL (tabs za obične korisnike) ────────────────────────────────────
+function UserPanel({ user, members }) {
+  const [subTab, setSubTab] = useState("request");
+  const tabs = [
+    { id:"request", label:"Zahtjev za unos" },
+    { id:"history", label:"Istorijat" },
+    { id:"gallery", label:"Galerija" },
+  ];
+  return (
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      <div style={{display:"flex",borderBottom:"1px solid rgba(200,150,62,.15)",background:"white",padding:"0 1.5rem",gap:".1rem",flexShrink:0}}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setSubTab(t.id)}
+            style={{
+              padding:".6rem 1rem",fontSize:".68rem",letterSpacing:".08em",textTransform:"uppercase",
+              border:"none",borderBottom:`2px solid ${subTab===t.id?"var(--gold)":"transparent"}`,
+              background:"none",color:subTab===t.id?"var(--gold-dark)":"#aaa",cursor:"pointer",
+              transition:"all .15s",fontFamily:"'Josefin Sans',sans-serif"
+            }}>
+            {t.label}
+          </button>
+        ))}
       </div>
+      {subTab === "request" && <RequestFormView user={user} members={members}/>}
+      {subTab === "history" && <HistoryView/>}
+      {subTab === "gallery" && <GalleryView/>}
     </div>
   );
 }
@@ -564,10 +1036,10 @@ export default function App() {
   const [editMember, setEditMember] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
 
   const isAdmin = user?.profile?.role === "admin";
 
-  // Provjeri sesiju na startu
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
@@ -587,14 +1059,21 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Učitaj članove kada se uloguje
   useEffect(() => {
-    if (user) loadMembers();
+    if (user) {
+      loadMembers();
+      if (isAdmin) loadPendingCount();
+    }
   }, [user]);
 
   const loadMembers = async () => {
     const { data, error } = await supabase.from("members_with_parents").select("*").order("id");
     if (!error) setMembers(data || []);
+  };
+
+  const loadPendingCount = async () => {
+    const { count } = await supabase.from("data_requests").select("*", { count:"exact", head:true }).eq("status","pending");
+    setPendingCount(count || 0);
   };
 
   const handleSaveMember = async (form) => {
@@ -603,15 +1082,12 @@ export default function App() {
     if (memberData.death_year === "") memberData.death_year = null;
 
     if (form.id) {
-      // UPDATE
       await supabase.from("members").update(memberData).eq("id", form.id);
       await supabase.from("member_parents").delete().eq("member_id", form.id);
     } else {
-      // INSERT
       const { data } = await supabase.from("members").insert(memberData).select().single();
       form.id = data.id;
     }
-    // Upiši roditelje
     if ((parent_ids || []).length > 0) {
       await supabase.from("member_parents").insert(
         parent_ids.map(pid => ({ member_id: form.id, parent_id: pid }))
@@ -628,12 +1104,11 @@ export default function App() {
     setSelected(null);
   };
 
-const handleLogout = async () => {
-  await supabase.auth.signOut();
-  setUser(null);
-  setMembers([]);
-  window.location.href = "/";
-};
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setMembers([]);
+  };
 
   if (loading) return (
     <>
@@ -650,10 +1125,20 @@ const handleLogout = async () => {
   const nav = [
     { id:"tree", icon:"tree", label:"Porodično stablo" },
     { id:"list", icon:"users", label:"Lista članova" },
-    ...(isAdmin ? [{ id:"admin", icon:"shield", label:"Admin panel" }] : []),
+    ...(isAdmin
+      ? [{ id:"admin", icon:"shield", label:"Admin panel", badge: pendingCount > 0 ? pendingCount : null }]
+      : [{ id:"user-panel", icon:"inbox", label:"Moj prostor" }]
+    ),
   ];
 
   const displayName = user?.profile?.full_name || user?.email || "Korisnik";
+
+  const topbarTitles = {
+    tree: "Porodično Stablo — Додеровићи",
+    list: "Lista članova",
+    admin: "Admin Panel",
+    "user-panel": "Moj prostor",
+  };
 
   return (
     <>
@@ -675,6 +1160,7 @@ const handleLogout = async () => {
             {nav.map(n => (
               <button key={n.id} className={`nav-item${view === n.id ? " active" : ""}`} onClick={() => setView(n.id)}>
                 <Icon name={n.icon} size={15}/>{n.label}
+                {n.badge && <span className="nav-badge">{n.badge}</span>}
               </button>
             ))}
           </nav>
@@ -685,11 +1171,7 @@ const handleLogout = async () => {
 
         <div className="main-content">
           <div className="topbar">
-            <div className="topbar-title">
-              {view === "tree" && "Porodično Stablo — Додеровићи"}
-              {view === "list" && "Lista članova"}
-              {view === "admin" && "Admin Panel"}
-            </div>
+            <div className="topbar-title">{topbarTitles[view] || ""}</div>
             <div className="topbar-actions">
               <span style={{fontSize:".7rem",color:"#aaa"}}>{members.length} članova</span>
               {isAdmin && view !== "admin" && (
@@ -702,7 +1184,8 @@ const handleLogout = async () => {
 
           {view === "tree" && <TreeView members={members} isAdmin={isAdmin} onEdit={m => { setEditMember(m); setShowModal(true); }} onSaveMember={handleSaveMember} onDelete={handleDelete} selected={selected} onSelect={setSelected}/>}
           {view === "list" && <ListView members={members} isAdmin={isAdmin} onEdit={m => { setEditMember(m); setShowModal(true); }} onDelete={handleDelete}/>}
-          {view === "admin" && isAdmin && <AdminPanel members={members} currentUser={user}/>}
+          {view === "admin" && isAdmin && <AdminPanel members={members} currentUser={user} onMemberAdded={() => { loadMembers(); loadPendingCount(); }}/>}
+          {view === "user-panel" && !isAdmin && <UserPanel user={user} members={members}/>}
         </div>
       </div>
 
