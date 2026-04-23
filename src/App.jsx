@@ -13,7 +13,7 @@ const HistoryView      = lazy(() => import("./components/HistoryView"));
 const GalleryView      = lazy(() => import("./components/GalleryView"));
 
 const TOPBAR_TITLES = {
-  tree:      "Породићно стабло — Додеровићи",
+  tree:      "Породично стабло — Додеровићи",
   istorijat: "Историјат породице Додеровић",
   galerija:  "Галерија",
   list:      "Листа чланова",
