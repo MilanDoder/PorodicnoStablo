@@ -308,11 +308,11 @@ export default function App() {
               <span className="credits-label">Дигитализација</span>
               <span className="credits-name">Светозар-Милан Миљанов Додеровић</span>
             </div>
-    // ──         <div className="credits-text">
-     // ──         <span className="credits-label">Садржај</span>
-      // ──        <span className="credits-name">Мићо Обрадов Додеровић до Новембра 1990. године</span>
-      // ──        <span className="credits-name">Бранко Светозаров Додеровић до Октобра 2017. године</span>
-      // ──      </div>
+       <div className="credits-text">
+      <span className="credits-label">Садржај</span>
+       <span className="credits-name">Мићо Обрадов Додеровић до Новембра 1990. године</span>
+       <span className="credits-name">Бранко Светозаров Додеровић до Октобра 2017. године</span>
+     </div>
 
             <div className="credits-divider" />
           </div>
