@@ -290,7 +290,7 @@ export default function App() {
         <div className="topbar">
           <div className="topbar-title">{TOPBAR_TITLES[view] || ""}</div>
           <div className="topbar-actions">
-            <span style={{ fontSize: ".7rem", color: "#aaa" }}>{members.length} članova</span>
+            <span style={{ fontSize: ".7rem", color: "#aaa" }}>{members.length} чланова</span>
             <button className="btn btn-ghost" onClick={handleExportPDF}>
               <Icon name="image" size={13} />PDF
             </button>
