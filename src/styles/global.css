@@ -844,3 +844,27 @@ body { font-family: 'Josefin Sans', sans-serif; background: var(--cream); color:
 }
 .mtm-info-close:hover { color: var(--rust); }
 
+/* ── Featured badge i napomena u DetailPanel-u ───────────────────────────────── */
+.dp-featured-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  margin-top: .5rem;
+  background: rgba(200,150,62,.15);
+  border: 1px solid rgba(200,150,62,.4);
+  color: var(--gold-light);
+  font-size: .6rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: .2rem .55rem;
+}
+.dp-featured-note {
+  margin-top: .45rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: .88rem;
+  color: rgba(232,184,90,.75);
+  line-height: 1.45;
+  border-left: 2px solid rgba(200,150,62,.35);
+  padding-left: .6rem;
+}
