@@ -1,14 +1,12 @@
 import Icon from "./Icon";
 
-const NODE_WIDTH   = 110; // .member-node width
-const NODE_GAP     = 20;  // gap between sibling nodes in child-stem
-const COUPLE_EXTRA = 126; // heart-sep + second node (~126px)
+const NODE_WIDTH   = 110;
+const NODE_GAP     = 20;
 
-// Širina jednog "stabla" čvora (uključuje bračnog para ako postoji)
 function subtreeWidth(member, members) {
   const children = getChildren(member, members);
   const spouse    = members.find(m => m.id === member.spouse_id);
-  const selfWidth = spouse ? NODE_WIDTH * 2 + 30 : NODE_WIDTH; // 30 = heart-sep
+  const selfWidth = spouse ? NODE_WIDTH * 2 + 30 : NODE_WIDTH;
   if (children.length === 0) return selfWidth;
   const childrenWidth = children.reduce((sum, c) => sum + subtreeWidth(c, members) + NODE_GAP, -NODE_GAP);
   return Math.max(selfWidth, childrenWidth);
@@ -29,6 +27,7 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
 
   const renderNode = (m, showAddChild = false) => (
     <div
+      data-member-id={m.id}
       className={`member-node ${m.gender}${selected?.id === m.id ? " sel" : ""}`}
       onClick={() => onSelect(m)}
     >
@@ -65,7 +64,6 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
     );
   }
 
-  // Izračunaj ukupnu širinu sve djece da centriramo liniju
   const childWidths = children.map(c => subtreeWidth(c, members));
   const totalChildrenWidth = childWidths.reduce((s, w) => s + w, 0) + NODE_GAP * (children.length - 1);
 
@@ -76,10 +74,8 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
         {spouse && <><span className="heart-sep">❤</span>{renderNode(spouse)}</>}
       </div>
 
-      {/* Vertikalna linija prema dolje */}
       <div className="vert-line" style={{ height: 20 }} />
 
-      {/* Horizontalna linija koja spaja djecu */}
       <div style={{ position: "relative", width: totalChildrenWidth, display: "flex", justifyContent: "center" }}>
         {children.length > 1 && (
           <div className="horiz-line" style={{

@@ -1,6 +1,6 @@
 import Icon from "./Icon";
 
-export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete }) {
+export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete, onNavigateTo, onSelect }) {
   if (!member) {
     return (
       <div className="detail-panel">
@@ -19,6 +19,23 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
     ? (member.death_year || new Date().getFullYear()) - member.birth_year
     : null;
 
+  const goTo = (m) => {
+    onSelect(m);
+    onNavigateTo(m.id);
+  };
+
+  const PersonChip = ({ m }) => (
+    <button
+      className="dp-person-chip"
+      onClick={() => goTo(m)}
+      title={`Idi na: ${m.first_name} ${m.last_name}`}
+    >
+      <span>{m.gender === "male" ? "👨" : "👩"}</span>
+      <span>{m.first_name} {m.last_name}</span>
+      <Icon name="arrow" size={10} />
+    </button>
+  );
+
   return (
     <div className="detail-panel">
       <div className="dp-head">
@@ -31,6 +48,7 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
       </div>
 
       <div className="dp-body">
+        {/* ── Lični podaci ── */}
         <div className="dp-sec">
           <div className="dp-sec-title">Lični podaci</div>
           {member.generational_line && (
@@ -59,26 +77,44 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
           )}
         </div>
 
+        {/* ── Porodica sa navigacijom ── */}
         <div className="dp-sec">
           <div className="dp-sec-title">Porodica</div>
+
           {spouse && (
-            <div className="dp-row">
-              <span className="dp-key">Supružnik</span>
-              <span className="dp-val">{spouse.first_name} {spouse.last_name}</span>
+            <div className="dp-nav-group">
+              <span className="dp-key" style={{ fontSize: ".65rem" }}>Supružnik</span>
+              <PersonChip m={spouse} />
             </div>
           )}
+
           {parents.length > 0 && (
-            <div className="dp-row">
-              <span className="dp-key">Roditelji</span>
-              <span className="dp-val">{parents.map(p => p.first_name).join(", ")}</span>
+            <div className="dp-nav-group">
+              <span className="dp-key" style={{ fontSize: ".65rem" }}>
+                {parents.length === 1 ? "Roditelj" : "Roditelji"}
+              </span>
+              <div className="dp-chips">
+                {parents.map(p => <PersonChip key={p.id} m={p} />)}
+              </div>
             </div>
           )}
-          <div className="dp-row">
-            <span className="dp-key">Djeca</span>
-            <span className="dp-val">
-              {children.length > 0 ? children.map(c => c.first_name).join(", ") : "—"}
-            </span>
-          </div>
+
+          {children.length > 0 && (
+            <div className="dp-nav-group">
+              <span className="dp-key" style={{ fontSize: ".65rem" }}>
+                Djeca ({children.length})
+              </span>
+              <div className="dp-chips">
+                {children.map(c => <PersonChip key={c.id} m={c} />)}
+              </div>
+            </div>
+          )}
+
+          {children.length === 0 && parents.length === 0 && !spouse && (
+            <div style={{ fontSize: ".72rem", color: "#ccc", fontStyle: "italic" }}>
+              Nema povezanih članova
+            </div>
+          )}
         </div>
 
         {member.notes && (
