@@ -70,7 +70,7 @@ function PhotoForm({ isAdmin, user, item, onSaved, onClose }) {
           title, description: desc || null,
           image_data: imgData, image_type: imgType,
           photo_year: year ? parseInt(year) : null,
-          user_id: user.id,
+          created_by: user.id,
         });
         if (e) throw e;
       } else {
