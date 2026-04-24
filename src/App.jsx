@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { supabase } from "./lib/supabase";
 import Icon from "./components/Icon";
 import LoginPage from "./components/LoginPage";
@@ -12,8 +12,8 @@ const HistoryView     = lazy(() => import("./components/HistoryView"));
 const GalleryView     = lazy(() => import("./components/GalleryView"));
 
 const TOPBAR_TITLES = {
-  tree:      "Породично стабло — Додеровићи и Додери",
-  istorijat: "Историјат породице Додеровић и Додер",
+  tree:      "Породично стабло — Додеровићи",
+  istorijat: "Историјат породице Додеровић",
   galerija:  "Галерија",
   list:      "Листа чланова",
   admin:     "Админ панел",
@@ -30,23 +30,40 @@ const fetchProfile = async (userId) => {
 };
 
 export default function App() {
-  const [user, setUser]                 = useState(null);
+  const [user, setUser]                 = useState(undefined); // undefined = još ne znamo
   const [members, setMembers]           = useState([]);
   const [view, setView]                 = useState("tree");
   const [selected, setSelected]         = useState(null);
   const [editMember, setEditMember]     = useState(null);
   const [showModal, setShowModal]       = useState(false);
-  const [loading, setLoading]           = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const initialized                     = useRef(false);
 
   const isAdmin = user?.profile?.role === "admin";
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-  // Koristimo SAMO onAuthStateChange — on uvijek ispali INITIAL_SESSION
-  // pri page loadu (sa ili bez aktivne sesije), što je jedini pouzdan signal.
   useEffect(() => {
+    // 1. Odmah proveri postojeću sesiju (sinhrono iz localStorage/cookie)
+    //    getSession() čita lokalni storage — ne čeka network, praktično instant.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (initialized.current) return; // onAuthStateChange je bio brži
+      initialized.current = true;
+
+      if (session) {
+        const profile = await fetchProfile(session.user.id);
+        setUser({ ...session.user, profile });
+      } else {
+        setUser(null); // nema sesije → prikaži login
+      }
+    });
+
+    // 2. Slušaj promene (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!initialized.current) {
+          initialized.current = true;
+        }
+
         if (session) {
           const profile = await fetchProfile(session.user.id);
           setUser({ ...session.user, profile });
@@ -54,8 +71,6 @@ export default function App() {
           setUser(null);
           setMembers([]);
         }
-        // I INITIAL_SESSION i svi kasniji eventi završavaju loading
-        setLoading(false);
       }
     );
 
@@ -145,7 +160,6 @@ export default function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    // onAuthStateChange će automatski postaviti user na null
   };
 
   const handleExportPDF = () => {
@@ -182,11 +196,9 @@ export default function App() {
       doc.setFillColor(26, 16, 8);
       doc.rect(0, 0, pageW, 22, "F");
       doc.setTextColor(232, 184, 90);
-      doc.setFontSize(16);
-      doc.setFont(undefined, "bold");
+      doc.setFontSize(16); doc.setFont(undefined, "bold");
       doc.text("Porodicno stablo - Doderovici", pageW / 2, 10, { align: "center" });
-      doc.setFontSize(8);
-      doc.setFont(undefined, "normal");
+      doc.setFontSize(8); doc.setFont(undefined, "normal");
       doc.setTextColor(180, 150, 80);
       doc.text("Poljana · Porodicna arhiva", pageW / 2, 17, { align: "center" });
 
@@ -194,12 +206,9 @@ export default function App() {
       const drawTableHeader = () => {
         doc.setFillColor(220, 200, 160);
         doc.rect(PAD, y, pageW - PAD * 2, 7, "F");
-        doc.setTextColor(...INK);
-        doc.setFontSize(7);
-        doc.setFont(undefined, "bold");
+        doc.setTextColor(...INK); doc.setFontSize(7); doc.setFont(undefined, "bold");
         cols.forEach(col => doc.text(col.label, col.x + 1, y + 5));
-        doc.setDrawColor(...GOLD);
-        doc.setLineWidth(0.3);
+        doc.setDrawColor(...GOLD); doc.setLineWidth(0.3);
         doc.line(PAD, y + 7, pageW - PAD, y + 7);
         y += 9;
       };
@@ -214,10 +223,7 @@ export default function App() {
       drawTableHeader();
       sorted.forEach((m, i) => {
         if (y + LINEH > pageH - 12) { doc.addPage(); y = 15; drawTableHeader(); }
-        if (i % 2 === 0) {
-          doc.setFillColor(...CREAM);
-          doc.rect(PAD, y - 4, pageW - PAD * 2, LINEH, "F");
-        }
+        if (i % 2 === 0) { doc.setFillColor(...CREAM); doc.rect(PAD, y - 4, pageW - PAD * 2, LINEH, "F"); }
         const roditelji = members.filter(p => (m.parent_ids || []).includes(p.id)).map(p => t(p.first_name)).join(", ") || "—";
         const godine    = m.birth_year ? `${m.birth_year}${m.death_year ? ` - ${m.death_year}` : ""}` : "—";
         const koleno    = m.generational_line ? `${m.generational_line}.` : "—";
@@ -252,14 +258,9 @@ export default function App() {
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <Icon name="spinner" size={32} />
-        <div className="loading-text">Učitavanje...</div>
-      </div>
-    );
-  }
+  // user === undefined znači da još čekamo odgovor od Supabase
+  // Prikazujemo prazan ekran (ne spinner) da ne bude "trepćuće" iskustvo
+  if (user === undefined) return null;
 
   if (!user) return <LoginPage onLogin={setUser} />;
 
