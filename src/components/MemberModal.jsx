@@ -16,7 +16,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
 
   const [f, setF] = useState(member || {
     first_name: "", last_name: "Додеровић", birth_year: "", death_year: "",
-    gender: "male", spouse_id: null, notes: "", parent_ids: [], generational_line: null,
+    gender: "male", spouse_id: null, notes: "", parent_ids: [], generational_line: null, featured: false,
   });
   const [childIds, setChildIds] = useState(existingChildIds);
   const [saving, setSaving] = useState(false);
@@ -76,6 +76,18 @@ export default function MemberModal({ member, members, onSave, onClose }) {
             </div>
 
             {/* ── Roditelji ── */}
+            <div className="form-field" style={{ display: "flex", alignItems: "center", gap: ".6rem", paddingTop: "1.4rem" }}>
+              <input
+                type="checkbox"
+                id="featured-check"
+                checked={!!f.featured}
+                onChange={e => set("featured", e.target.checked)}
+                style={{ width: 16, height: 16, accentColor: "var(--gold)", cursor: "pointer" }}
+              />
+              <label htmlFor="featured-check" className="form-label" style={{ margin: 0, cursor: "pointer" }}>
+                ★ Istaknuti član
+              </label>
+            </div>
             <div className="form-field full">
               <label className="form-label">Roditelji</label>
               <select
