@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Icon from "./Icon";
+import ParentPicker from "./ParentPicker";
 
 function memberLabel(m, members) {
   const otac   = members.find(p => (m.parent_ids || []).includes(p.id) && p.gender === "male");
@@ -106,20 +107,12 @@ export default function MemberModal({ member, members, onSave, onClose }) {
             {/* ── Roditelji ── */}
             <div className="form-field full">
               <label className="form-label">Roditelji</label>
-              <select
-                className="form-select"
-                multiple
-                style={{ height: 100 }}
-                value={(f.parent_ids || []).map(String)}
-                onChange={e => set("parent_ids", Array.from(e.target.selectedOptions, o => parseInt(o.value)))}
-              >
-                {others.map(m => (
-                  <option key={m.id} value={m.id}>{memberLabel(m, members)}</option>
-                ))}
-              </select>
-              <span style={{ fontSize: ".62rem", color: "#999", marginTop: 3 }}>
-                Ctrl+klik za više roditelja · trenutno: {(f.parent_ids || []).length === 0 ? "nema" : others.filter(m => (f.parent_ids || []).includes(m.id)).map(m => m.first_name).join(", ")}
-              </span>
+              <ParentPicker
+                members={others}
+                selectedIds={f.parent_ids || []}
+                onChange={ids => set("parent_ids", ids)}
+                excludeId={f.id}
+              />
             </div>
 
             {/* ── Djeca (samo pri editovanju) ── */}

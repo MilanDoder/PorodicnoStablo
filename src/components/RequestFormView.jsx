@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
+import ParentPicker from "./ParentPicker";
 
 
 const STATUS_LABEL = { pending: "Na čekanju", approved: "Prihvaćen", rejected: "Odbijen" };
@@ -122,25 +123,11 @@ export default function RequestFormView({ user, members }) {
           </div>
           <div className="form-field full">
             <label className="form-label">Roditelji (iz stabla)</label>
-            <select
-              className="form-select"
-              multiple
-              style={{ height: 110 }}
-              value={(f.parent_ids || []).map(String)}
-              onChange={e => set("parent_ids", Array.from(e.target.selectedOptions, o => parseInt(o.value)))}
-            >
-              {members.map(m => {
-                const otac = members.find(p => (m.parent_ids || []).includes(p.id) && p.gender === "male");
-                const godina = m.birth_year ? ` · ${m.birth_year}.` : "";
-                const imeOca = otac ? ` (${otac.first_name})` : "";
-                return (
-                  <option key={m.id} value={m.id}>
-                    {m.first_name} {m.last_name}{imeOca}{godina}
-                  </option>
-                );
-              })}
-            </select>
-            <span style={{ fontSize: ".62rem", color: "#999", marginTop: 3 }}>Ctrl+klik za više roditelja</span>
+            <ParentPicker
+              members={members}
+              selectedIds={f.parent_ids || []}
+              onChange={ids => set("parent_ids", ids)}
+            />
           </div>
           <div className="form-field full">
             <label className="form-label">Napomena / Izvor podataka</label>
