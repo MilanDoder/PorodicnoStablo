@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
 
-const TYPE_LABELS = { member: "Član", gallery: "Fotografija", history: "Priča" };
+const TYPE_LABELS = { member: "Члан", gallery: "Фотографија", history: "Прича" };
 const TYPE_ICONS  = { member: "👤", gallery: "🖼️", history: "📖" };
 
 export default function AdminRequestsView({ members, onMemberAdded }) {
-  const [requests, setRequests]   = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [requests, setRequests]     = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [processing, setProcessing] = useState(null);
-  const [noteMap, setNoteMap]     = useState({});
+  const [noteMap, setNoteMap]       = useState({});
   const [filterType, setFilterType] = useState("all");
 
   useEffect(() => { loadRequests(); }, []);
@@ -83,17 +83,21 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
 
   return (
     <div className="req-wrap">
-      {/* Filter tab-ovi */}
       <div style={{ display: "flex", gap: ".5rem", marginBottom: "1rem" }}>
         {["all", "member", "gallery", "history"].map(t => (
           <button key={t} className={`btn btn-sm ${filterType === t ? "btn-primary" : "btn-ghost"}`} onClick={() => setFilterType(t)}>
-            {t === "all" ? `Svi (${requests.length})` : `${TYPE_ICONS[t]} ${TYPE_LABELS[t]} (${requests.filter(r => (r.request_type || "member") === t).length})`}
+            {t === "all"
+              ? `Сви (${requests.length})`
+              : `${TYPE_ICONS[t]} ${TYPE_LABELS[t]} (${requests.filter(r => (r.request_type || "member") === t).length})`}
           </button>
         ))}
       </div>
 
       {filtered.length === 0 ? (
-        <div className="empty-state"><div className="empty-state-icon">✅</div><div className="empty-state-text">Nema zahtjeva na čekanju</div></div>
+        <div className="empty-state">
+          <div className="empty-state-icon">✅</div>
+          <div className="empty-state-text">Нема захтјева на чекању</div>
+        </div>
       ) : filtered.map(req => {
         const type = req.request_type || "member";
         return (
@@ -112,43 +116,47 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
 
             <div className="req-card-body">
               {type === "member" && <>
-                <div className="req-field"><div className="req-field-key">Pol</div>{req.gender === "male" ? "Muški" : "Ženski"}</div>
-                <div className="req-field"><div className="req-field-key">Godište</div>{req.birth_year || "—"}</div>
-                <div className="req-field"><div className="req-field-key">Roditelji</div>{parentNames(req.parent_ids)}</div>
-                {req.notes && <div className="req-field" style={{ gridColumn: "1/-1" }}><div className="req-field-key">Beleška</div>{req.notes}</div>}
+                <div className="req-field"><div className="req-field-key">Пол</div>{req.gender === "male" ? "Мушки" : "Женски"}</div>
+                <div className="req-field"><div className="req-field-key">Годиште</div>{req.birth_year || "—"}</div>
+                <div className="req-field"><div className="req-field-key">Родитељи</div>{parentNames(req.parent_ids)}</div>
+                {req.notes && <div className="req-field" style={{ gridColumn: "1/-1" }}><div className="req-field-key">Биљешка</div>{req.notes}</div>}
               </>}
 
               {type === "gallery" && <>
-                {req.image_data && <div style={{ gridColumn: "1/-1" }}>
-                  <img src={`data:${req.image_type || "image/jpeg"};base64,${req.image_data}`} alt={req.title} style={{ maxHeight: 160, maxWidth: "100%", objectFit: "cover", border: "1px solid rgba(200,150,62,.2)" }} />
-                </div>}
-                {req.photo_year && <div className="req-field"><div className="req-field-key">Godina</div>{req.photo_year}.</div>}
-                {req.content && <div className="req-field" style={{ gridColumn: "1/-1" }}><div className="req-field-key">Opis</div>{req.content}</div>}
+                {req.image_data && (
+                  <div style={{ gridColumn: "1/-1" }}>
+                    <img src={`data:${req.image_type || "image/jpeg"};base64,${req.image_data}`} alt={req.title} style={{ maxHeight: 160, maxWidth: "100%", objectFit: "cover", border: "1px solid rgba(200,150,62,.2)" }} />
+                  </div>
+                )}
+                {req.photo_year && <div className="req-field"><div className="req-field-key">Година</div>{req.photo_year}.</div>}
+                {req.content && <div className="req-field" style={{ gridColumn: "1/-1" }}><div className="req-field-key">Опис</div>{req.content}</div>}
               </>}
 
               {type === "history" && <>
-                {req.image_data && <div style={{ gridColumn: "1/-1" }}>
-                  <img src={`data:${req.image_type || "image/jpeg"};base64,${req.image_data}`} alt={req.title} style={{ maxHeight: 120, maxWidth: "100%", objectFit: "cover", border: "1px solid rgba(200,150,62,.2)" }} />
-                </div>}
-                {req.story_date && <div className="req-field"><div className="req-field-key">Datum</div>{new Date(req.story_date).toLocaleDateString("sr-Latn")}</div>}
-                {req.content && <div className="req-field" style={{ gridColumn: "1/-1" }}><div className="req-field-key">Tekst</div><div style={{ maxHeight: 120, overflow: "auto", fontSize: ".78rem", lineHeight: 1.5 }}>{req.content}</div></div>}
+                {req.image_data && (
+                  <div style={{ gridColumn: "1/-1" }}>
+                    <img src={`data:${req.image_type || "image/jpeg"};base64,${req.image_data}`} alt={req.title} style={{ maxHeight: 120, maxWidth: "100%", objectFit: "cover", border: "1px solid rgba(200,150,62,.2)" }} />
+                  </div>
+                )}
+                {req.story_date && <div className="req-field"><div className="req-field-key">Датум</div>{new Date(req.story_date).toLocaleDateString("sr-Latn")}</div>}
+                {req.content && <div className="req-field" style={{ gridColumn: "1/-1" }}><div className="req-field-key">Текст</div><div style={{ maxHeight: 120, overflow: "auto", fontSize: ".78rem", lineHeight: 1.5 }}>{req.content}</div></div>}
               </>}
             </div>
 
             <div className="req-card-foot" style={{ flexDirection: "column", gap: ".5rem" }}>
               <input
                 className="form-input"
-                placeholder="Admin napomena (opciono)..."
+                placeholder="Админ напомена (опционо)..."
                 value={noteMap[req.id] || ""}
                 onChange={e => setNoteMap(p => ({ ...p, [req.id]: e.target.value }))}
                 style={{ fontSize: ".72rem" }}
               />
               <div style={{ display: "flex", gap: ".5rem", justifyContent: "flex-end" }}>
                 <button className="btn btn-danger btn-sm" disabled={!!processing} onClick={() => handleDecision(req, "rejected")}>
-                  <Icon name="close" size={11} />Odbij
+                  <Icon name="close" size={11} />Одбиј
                 </button>
                 <button className="btn btn-success btn-sm" disabled={!!processing} onClick={() => handleDecision(req, "approved")}>
-                  <Icon name="check" size={11} />Odobri
+                  <Icon name="check" size={11} />Одобри
                 </button>
               </div>
             </div>
