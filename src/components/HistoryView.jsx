@@ -67,7 +67,7 @@ function AddStoryForm({ isAdmin, user, onSaved, onClose }) {
         const { error: e } = await supabase.from("history_stories").insert({
           title, content, story_date: date || null,
           cover_image: imgData || null, image_type: imgType,
-          created_by: user.id,
+          user_id: user.id,
         });
         if (e) throw e;
       } else {
@@ -76,7 +76,8 @@ function AddStoryForm({ isAdmin, user, onSaved, onClose }) {
           story_date: date || null,
           image_data: imgData || null, image_type: imgType,
           status: "pending",
-          created_by: user.id,
+          user_id: user.id,
+          user_email: user.email,
         });
         if (e) throw e;
       }
