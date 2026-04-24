@@ -281,7 +281,7 @@ export default function App() {
             <div className="credits-divider" />
           </div>
           <button className="logout-btn" onClick={handleLogout}>
-            <Icon name="logout" size={14} />Odjava
+            <Icon name="logout" size={14} />Одјава
           </button>
         </div>
       </aside>
