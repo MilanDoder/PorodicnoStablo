@@ -301,6 +301,18 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-footer">
+          <div className="sidebar-credits">
+            <div className="credits-divider" />
+            <div className="credits-text">
+              <span className="credits-label">Идеја и садржај</span>
+              <span className="credits-name">Бранко Светозаров Додеровић</span>
+            </div>
+            <div className="credits-text">
+              <span className="credits-label">Дигитализација</span>
+              <span className="credits-name">Милан Додеровић</span>
+            </div>
+            <div className="credits-divider" />
+          </div>
           <button className="logout-btn" onClick={handleLogout}>
             <Icon name="logout" size={14} />Odjava
           </button>
