@@ -30,7 +30,7 @@ const fetchProfile = async (userId) => {
 };
 
 export default function App() {
-  const [user, setUser]                 = useState(undefined); // undefined = još ne znamo
+  const [user, setUser]                 = useState(undefined);
   const [members, setMembers]           = useState([]);
   const [view, setView]                 = useState("tree");
   const [selected, setSelected]         = useState(null);
@@ -43,27 +43,20 @@ export default function App() {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    // 1. Odmah proveri postojeću sesiju (sinhrono iz localStorage/cookie)
-    //    getSession() čita lokalni storage — ne čeka network, praktično instant.
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (initialized.current) return; // onAuthStateChange je bio brži
+      if (initialized.current) return;
       initialized.current = true;
-
       if (session) {
         const profile = await fetchProfile(session.user.id);
         setUser({ ...session.user, profile });
       } else {
-        setUser(null); // nema sesije → prikaži login
+        setUser(null);
       }
     });
 
-    // 2. Slušaj promene (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!initialized.current) {
-          initialized.current = true;
-        }
-
+        if (!initialized.current) initialized.current = true;
         if (session) {
           const profile = await fetchProfile(session.user.id);
           setUser({ ...session.user, profile });
@@ -77,7 +70,6 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ── Učitaj podatke kad se user promijeni ──────────────────────────────────
   useEffect(() => {
     if (user) {
       loadMembers();
@@ -87,18 +79,12 @@ export default function App() {
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const loadMembers = async () => {
-    const { data, error } = await supabase
-      .from("members_with_parents")
-      .select("*")
-      .order("id");
+    const { data, error } = await supabase.from("members_with_parents").select("*").order("id");
     if (!error) setMembers(data || []);
   };
 
   const loadPendingCount = async () => {
-    const { count } = await supabase
-      .from("data_requests")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "pending");
+    const { count } = await supabase.from("data_requests").select("*", { count: "exact", head: true }).eq("status", "pending");
     setPendingCount(count || 0);
   };
 
@@ -106,10 +92,8 @@ export default function App() {
     const { parent_ids, ...memberData } = form;
     if (memberData.birth_year === "") memberData.birth_year = null;
     if (memberData.death_year === "") memberData.death_year = null;
-
     try {
       let memberId = form.id;
-
       if (form.id) {
         const { error } = await supabase.from("members").update(memberData).eq("id", form.id);
         if (error) throw error;
@@ -119,30 +103,22 @@ export default function App() {
         if (error) throw error;
         memberId = data.id;
       }
-
       if ((parent_ids || []).length > 0) {
         const { error } = await supabase.from("member_parents").insert(
           parent_ids.map(pid => ({ member_id: memberId, parent_id: pid }))
         );
         if (error) throw error;
       }
-
       for (const childId of childIds) {
-        await supabase.from("member_parents").delete()
-          .eq("member_id", childId).eq("parent_id", memberId);
-        await supabase.from("member_parents").insert({
-          member_id: childId, parent_id: memberId,
-        });
+        await supabase.from("member_parents").delete().eq("member_id", childId).eq("parent_id", memberId);
+        await supabase.from("member_parents").insert({ member_id: childId, parent_id: memberId });
       }
-
       const removedChildren = members
         .filter(m => (m.parent_ids || []).includes(memberId) && !childIds.includes(m.id))
         .map(m => m.id);
       for (const childId of removedChildren) {
-        await supabase.from("member_parents").delete()
-          .eq("member_id", childId).eq("parent_id", memberId);
+        await supabase.from("member_parents").delete().eq("member_id", childId).eq("parent_id", memberId);
       }
-
       await loadMembers();
       setShowModal(false);
       setEditMember(null);
@@ -176,7 +152,6 @@ export default function App() {
         'ч':'ch','џ':'dz','ш':'s',
       };
       const t = (str) => String(str ?? "").replace(/./g, c => CYR[c] ?? c);
-
       const doc   = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
@@ -192,7 +167,6 @@ export default function App() {
       const INK   = [26, 16, 8];
       const GRAY  = [110, 100, 90];
       const CREAM = [248, 243, 232];
-
       doc.setFillColor(26, 16, 8);
       doc.rect(0, 0, pageW, 22, "F");
       doc.setTextColor(232, 184, 90);
@@ -201,7 +175,6 @@ export default function App() {
       doc.setFontSize(8); doc.setFont(undefined, "normal");
       doc.setTextColor(180, 150, 80);
       doc.text("Poljana · Porodicna arhiva", pageW / 2, 17, { align: "center" });
-
       let y = 28;
       const drawTableHeader = () => {
         doc.setFillColor(220, 200, 160);
@@ -212,14 +185,12 @@ export default function App() {
         doc.line(PAD, y + 7, pageW - PAD, y + 7);
         y += 9;
       };
-
       const sorted = [...members].sort((a, b) => {
         const ga = a.generational_line ?? 999;
         const gb = b.generational_line ?? 999;
         if (ga !== gb) return ga - gb;
         return t(a.first_name).localeCompare(t(b.first_name));
       });
-
       drawTableHeader();
       sorted.forEach((m, i) => {
         if (y + LINEH > pageH - 12) { doc.addPage(); y = 15; drawTableHeader(); }
@@ -235,7 +206,6 @@ export default function App() {
         doc.text(koleno, cols[3].x + 1, y);
         y += LINEH;
       });
-
       const totalPages = doc.internal.getNumberOfPages();
       for (let p = 1; p <= totalPages; p++) {
         doc.setPage(p);
@@ -247,7 +217,6 @@ export default function App() {
       }
       doc.save("Doderovici-porodicno-stablo.pdf");
     };
-
     if (window.jspdf) { load(); }
     else {
       const script = document.createElement("script");
@@ -258,10 +227,7 @@ export default function App() {
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
-  // user === undefined znači da još čekamo odgovor od Supabase
-  // Prikazujemo prazan ekran (ne spinner) da ne bude "trepćuće" iskustvo
   if (user === undefined) return null;
-
   if (!user) return <LoginPage onLogin={setUser} />;
 
   const nav = [
@@ -304,15 +270,14 @@ export default function App() {
           <div className="sidebar-credits">
             <div className="credits-divider" />
             <div className="credits-text">
-              <div className="credits-text">
               <span className="credits-label">Дигитализација</span>
               <span className="credits-name">Светозар-Милан Миљанов Додеровић</span>
             </div>
+            <div className="credits-text">
               <span className="credits-label">Садржај</span>
-              <span className="credits-name">Мићо Обрадов Додеровић до Новембра 1990. године</span>
-              <span className="credits-name">Бранко Светозаров Додеровић до Октобра 2017. године</span>
+              <span className="credits-name">Мићо Обрадов Додеровић до Новембра 1990.</span>
+              <span className="credits-name">Бранко Светозаров Додеровић до Октобра 2017.</span>
             </div>
-
             <div className="credits-divider" />
           </div>
           <button className="logout-btn" onClick={handleLogout}>
@@ -342,8 +307,8 @@ export default function App() {
           {view === "list"      && <ListView members={members} isAdmin={isAdmin} onEdit={openModal} onDelete={handleDelete} />}
           {view === "admin"     && isAdmin  && <AdminPanel members={members} currentUser={user} onMemberAdded={() => { loadMembers(); loadPendingCount(); }} />}
           {view === "zahtjev"   && !isAdmin && <RequestFormView user={user} members={members} />}
-          {view === "istorijat" && <HistoryView />}
-          {view === "galerija"  && <GalleryView />}
+          {view === "istorijat" && <HistoryView user={user} isAdmin={isAdmin} />}
+          {view === "galerija"  && <GalleryView user={user} isAdmin={isAdmin} />}
         </Suspense>
       </div>
 
