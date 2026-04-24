@@ -12,8 +12,8 @@ const HistoryView     = lazy(() => import("./components/HistoryView"));
 const GalleryView     = lazy(() => import("./components/GalleryView"));
 
 const TOPBAR_TITLES = {
-  tree:      "Породично стабло — Додеровићи",
-  istorijat: "Историјат породице Додеровић",
+  tree:      "Породично стабло — Додеровићи и Додери",
+  istorijat: "Историјат породице Додеровић и Додер",
   galerija:  "Галерија",
   list:      "Листа чланова",
   admin:     "Админ панел",
