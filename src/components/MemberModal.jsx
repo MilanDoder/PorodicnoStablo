@@ -1,7 +1,6 @@
 import { useState } from "react";
 import Icon from "./Icon";
 
-// Format opcije: "Ime Prezime (otac) · 1955."
 function memberLabel(m, members) {
   const otac   = members.find(p => (m.parent_ids || []).includes(p.id) && p.gender === "male");
   const godina = m.birth_year ? ` · ${m.birth_year}.` : "";
@@ -16,7 +15,8 @@ export default function MemberModal({ member, members, onSave, onClose }) {
 
   const [f, setF] = useState(member || {
     first_name: "", last_name: "Додеровић", birth_year: "", death_year: "",
-    gender: "male", spouse_id: null, notes: "", parent_ids: [], generational_line: null, featured: false,
+    gender: "male", spouse_id: null, notes: "", parent_ids: [], generational_line: null,
+    featured: false, featured_note: "",
   });
   const [childIds, setChildIds] = useState(existingChildIds);
   const [saving, setSaving] = useState(false);
@@ -75,7 +75,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
               <input className="form-input" type="number" value={f.generational_line || ""} onChange={e => set("generational_line", e.target.value ? parseInt(e.target.value) : null)} placeholder="npr. 3" />
             </div>
 
-            {/* ── Roditelji ── */}
+            {/* ── Istaknuti član ── */}
             <div className="form-field" style={{ display: "flex", alignItems: "center", gap: ".6rem", paddingTop: "1.4rem" }}>
               <input
                 type="checkbox"
@@ -88,6 +88,22 @@ export default function MemberModal({ member, members, onSave, onClose }) {
                 ★ Istaknuti član
               </label>
             </div>
+
+            {/* ── Posebna napomena — prikazuje se samo kad je featured čekiran ── */}
+            {f.featured && (
+              <div className="form-field full">
+                <label className="form-label">★ Posebna napomena (istaknuti član)</label>
+                <textarea
+                  className="form-textarea"
+                  value={f.featured_note || ""}
+                  onChange={e => set("featured_note", e.target.value)}
+                  placeholder="Kratka napomena koja će biti istaknuta uz ime ovog člana..."
+                  rows={3}
+                />
+              </div>
+            )}
+
+            {/* ── Roditelji ── */}
             <div className="form-field full">
               <label className="form-label">Roditelji</label>
               <select
