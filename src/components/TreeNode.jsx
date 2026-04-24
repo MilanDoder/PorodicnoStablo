@@ -1,10 +1,42 @@
 import Icon from "./Icon";
 
-const NODE_WIDTH   = 110;
-const NODE_GAP     = 20;
+const NODE_WIDTH = 110;
+const NODE_GAP   = 20;
+
+/**
+ * Dete se prikazuje u stablu samo ako ima bar jednog muškog roditelja
+ * koji postoji u members listi. Ako su svi roditelji ženskog pola,
+ * dete se sakriva iz stabla (ali ostaje vidljivo u DetailPanel-u).
+ */
+function hasVisibleMaleParent(child, members) {
+  const parentIds = child.parent_ids || [];
+  return parentIds.some(pid => {
+    const parent = members.find(m => m.id === pid);
+    return parent && parent.gender === "male";
+  });
+}
+
+function getChildren(member, members) {
+  return members.filter(m => {
+    // Mora biti dijete ovog člana
+    if (!(m.parent_ids || []).includes(member.id)) return false;
+
+    // Izbjegni duplikate — ako dijete ima dva roditelja u stablu,
+    // prikazuj ga samo pod onim s manjim id-em
+    const otherParent = (m.parent_ids || []).find(
+      pid => pid !== member.id && members.find(x => x.id === pid)
+    );
+    if (otherParent && otherParent < member.id) return false;
+
+    // Sakrij dijete ako nema ni jednog muškog roditelja u stablu
+    if (!hasVisibleMaleParent(m, members)) return false;
+
+    return true;
+  });
+}
 
 function subtreeWidth(member, members) {
-  const children = getChildren(member, members);
+  const children  = getChildren(member, members);
   const spouse    = members.find(m => m.id === member.spouse_id);
   const selfWidth = spouse ? NODE_WIDTH * 2 + 30 : NODE_WIDTH;
   if (children.length === 0) return selfWidth;
@@ -12,47 +44,58 @@ function subtreeWidth(member, members) {
   return Math.max(selfWidth, childrenWidth);
 }
 
-function getChildren(member, members) {
-  return members.filter(m => {
-    if (!(m.parent_ids || []).includes(member.id)) return false;
-    const otherParent = (m.parent_ids || []).find(pid => pid !== member.id && members.find(x => x.id === pid));
-    if (otherParent && otherParent < member.id) return false;
-    return true;
-  });
-}
-
 export default function TreeNode({ member, members, selected, onSelect, isAdmin, onEdit, onAddChild }) {
   const children = getChildren(member, members);
   const spouse   = members.find(m => m.id === member.spouse_id);
 
-  const renderNode = (m, showAddChild = false) => (
-    <div
-      data-member-id={m.id}
-      className={`member-node ${m.gender}${selected?.id === m.id ? " sel" : ""}${m.featured ? " featured" : ""}`}
-      onClick={() => onSelect(m)}
-    >
-      {m.featured && <span className="node-featured-badge" title="Istaknuti član">★</span>}
-      <div className="node-name">{m.first_name}<br />{m.last_name}</div>
-      {m.birth_year && (
-        <div className="node-note">{m.birth_year}{m.death_year ? `–${m.death_year}` : ""}</div>
-      )}
-      {m.generational_line && (
-        <div className="node-note" style={{ color: "var(--gold-dark)", fontWeight: 600 }}>
-          {m.generational_line}. koleno
-        </div>
-      )}
-      {isAdmin && (
-        <div className="node-actions">
-          <button className="node-act" onClick={e => { e.stopPropagation(); onEdit(m); }}>
-            <Icon name="edit" size={9} />
-          </button>
-          {showAddChild && (
-            <button className="node-act" onClick={e => { e.stopPropagation(); onAddChild(m); }}>+</button>
-          )}
-        </div>
-      )}
-    </div>
-  );
+  // Broj sakrivene djece (samo ženske linije) — prikazujemo info na čvoru
+  const hiddenChildrenCount = members.filter(m => {
+    if (!(m.parent_ids || []).includes(member.id)) return false;
+    if (!hasVisibleMaleParent(m, members)) return true;
+    return false;
+  }).length;
+
+  const renderNode = (m, showAddChild = false) => {
+    const hidden = members.filter(c => {
+      if (!(c.parent_ids || []).includes(m.id)) return false;
+      return !hasVisibleMaleParent(c, members);
+    }).length;
+
+    return (
+      <div
+        data-member-id={m.id}
+        className={`member-node ${m.gender}${selected?.id === m.id ? " sel" : ""}${m.featured ? " featured" : ""}`}
+        onClick={() => onSelect(m)}
+      >
+        {m.featured && <span className="node-featured-badge" title="Istaknuti član">★</span>}
+        <div className="node-name">{m.first_name}<br />{m.last_name}</div>
+        {m.birth_year && (
+          <div className="node-note">{m.birth_year}{m.death_year ? `–${m.death_year}` : ""}</div>
+        )}
+        {m.generational_line && (
+          <div className="node-note" style={{ color: "var(--gold-dark)", fontWeight: 600 }}>
+            {m.generational_line}. koleno
+          </div>
+        )}
+        {/* Indikator sakrivene djece */}
+        {hidden > 0 && (
+          <div className="node-hidden-children" title="Kliknite za detalje">
+            +{hidden} ♀
+          </div>
+        )}
+        {isAdmin && (
+          <div className="node-actions">
+            <button className="node-act" onClick={e => { e.stopPropagation(); onEdit(m); }}>
+              <Icon name="edit" size={9} />
+            </button>
+            {showAddChild && (
+              <button className="node-act" onClick={e => { e.stopPropagation(); onAddChild(m); }}>+</button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (children.length === 0) {
     return (
@@ -65,7 +108,7 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
     );
   }
 
-  const childWidths = children.map(c => subtreeWidth(c, members));
+  const childWidths        = children.map(c => subtreeWidth(c, members));
   const totalChildrenWidth = childWidths.reduce((s, w) => s + w, 0) + NODE_GAP * (children.length - 1);
 
   return (
