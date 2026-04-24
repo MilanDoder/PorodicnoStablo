@@ -61,7 +61,7 @@ function AddPhotoForm({ isAdmin, user, onSaved, onClose }) {
         const { error: e } = await supabase.from("gallery").insert({ title, description: desc || null, image_data: imgData, image_type: imgType, photo_year: year ? parseInt(year) : null, created_by: user.id });
         if (e) throw e;
       } else {
-        const { error: e } = await supabase.from("data_requests").insert({ request_type: "gallery", title, content: desc || null, image_data: imgData, image_type: imgType, photo_year: year ? parseInt(year) : null, status: "pending", created_by: user.id });
+        const { error: e } = await supabase.from("data_requests").insert({ request_type: "gallery", title, content: desc || null, image_data: imgData, image_type: imgType, photo_year: year ? parseInt(year) : null, status: "pending", user_id: user.id, user_email: user.email });
         if (e) throw e;
       }
       onSaved();
