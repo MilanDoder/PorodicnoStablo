@@ -3,10 +3,10 @@ import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
 
 export default function LoginPage({ onLogin }) {
-  const [email, setEmail]       = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) return;
@@ -26,14 +26,12 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <div className="login-page">
-
-      {/* ── Gornji natpis ── */}
-      <div className="login-above">Додеровићи</div>
-
-      {/* ── Forma ── */}
+      <div className="login-bg-text">Додеровићи</div>
       <div className="login-card">
         <div className="login-logo">
-          <div style={{ fontSize: "2rem" }}>🌳</div>
+          <div style={{ fontSize: "2.5rem" }}>🌳</div>
+          <div className="login-title">Додеровићи</div>
+          <div className="login-family">Пољана</div>
           <div className="login-subtitle">Систем за управљање родословом</div>
         </div>
         <div className="divider" />
@@ -70,10 +68,6 @@ export default function LoginPage({ onLogin }) {
           {loading ? <><Icon name="spinner" size={16} />Prijava...</> : "Prijavite se →"}
         </button>
       </div>
-
-      {/* ── Donji natpis ── */}
-      <div className="login-below">Додери</div>
-
     </div>
   );
 }
