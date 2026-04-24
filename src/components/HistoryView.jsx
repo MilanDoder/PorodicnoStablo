@@ -1,47 +1,192 @@
-const EVENTS = [
-  {
-    date: "Oktobar 2017.", tag: "Dopuna",
-    text: <><strong>Бранко Светозаров Додеровић</strong> dopunio porodično stablo novim granama i dodao podatke o potomcima koji žive van Srbije.</>,
-  },
-  {
-    date: "Novembar 1990.", tag: "Osnivanje",
-    text: <><strong>Мићо Обрадов Додеровић</strong> završio izradu originalnog rukopisa rodoslova. Rukopis sadrži više od četiri generacije evidentiranih članova из Пољане и околних sela.</>,
-  },
-  {
-    date: "1971.", tag: "Događaj",
-    text: <>Porodični zbor u Пољани — proslava krсне slavе. Prisustvovalo je više od 60 članova porodice iz Srbije i dijaspore. Fotografije sa zbora čuvaju se u porodičnoj arhivi.</>,
-  },
-  {
-    date: "1952.", tag: "Istorija",
-    text: <>Seoba dijela porodice Додеровић iz planinske Пољане prema Užicu u potrazi za boljim uslovima života. Ova grana zadržava prezime i vezu sa rodnim krajem.</>,
-  },
-  {
-    date: "1938.", tag: "Istorija",
-    text: <>Izgradnja stare porodične kuće koja i danas stoji u Пољани. Kućа je bila centar porodičnog života za tri generacije — djeda, oca i sinova.</>,
-  },
-  {
-    date: "Kraj 19. vijeka", tag: "Poreklo",
-    text: <>Najstariji evidentirani preci Додеровић dolaze iz šumadijskog kraja. Prezime je patronimskog porekla — nastalo od ličnog imena претка.</>,
-  },
-];
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "../lib/supabase";
+import Icon from "./Icon";
 
-export default function HistoryView() {
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(",")[1]);
+    r.onerror = () => rej(new Error("Greška"));
+    r.readAsDataURL(file);
+  });
+}
+
+// ── Story popup ───────────────────────────────────────────────────────────────
+function StoryModal({ item, onClose }) {
   return (
-    <div className="history-wrap">
-      <div className="section-title" style={{ marginBottom: "1.25rem" }}>
-        Историјат породице Додеровић
-      </div>
-      <div className="timeline">
-        {EVENTS.map((ev, i) => (
-          <div className="tl-item" key={i}>
-            <div className="tl-dot" />
-            <div className="tl-date">
-              {ev.date} <span className="tl-tag">{ev.tag}</span>
+    <div className="overlay" style={{ zIndex: 1100 }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="story-modal">
+        <div className="gallery-modal-head">
+          <span className="modal-title">{item.title}</span>
+          <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
+        </div>
+        {item.cover_image && (
+          <img src={`data:${item.image_type || "image/jpeg"};base64,${item.cover_image}`} alt={item.title} className="story-modal-img" />
+        )}
+        <div className="story-modal-body">
+          {item.story_date && (
+            <div className="story-modal-date">
+              📅 {new Date(item.story_date).toLocaleDateString("sr-Latn", { year: "numeric", month: "long", day: "numeric" })}
             </div>
-            <div className="tl-card">{ev.text}</div>
-          </div>
-        ))}
+          )}
+          <div className="story-modal-content">{item.content}</div>
+        </div>
       </div>
+    </div>
+  );
+}
+
+// ── Add Story Form ────────────────────────────────────────────────────────────
+function AddStoryForm({ isAdmin, user, onSaved, onClose }) {
+  const [title, setTitle]     = useState("");
+  const [content, setContent] = useState("");
+  const [date, setDate]       = useState("");
+  const [imgData, setImgData] = useState(null);
+  const [imgType, setImgType] = useState("image/jpeg");
+  const [preview, setPreview] = useState(null);
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState("");
+  const fileRef               = useRef();
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) { setError("Slika mora biti manja od 3MB"); return; }
+    setImgType(file.type || "image/jpeg");
+    const b64 = await fileToBase64(file);
+    setImgData(b64);
+    setPreview(`data:${file.type};base64,${b64}`);
+    setError("");
+  };
+
+  const handleSave = async () => {
+    if (!title.trim() || !content.trim()) { setError("Naslov i tekst priče su obavezni"); return; }
+    setSaving(true);
+    try {
+      if (isAdmin) {
+        const { error: e } = await supabase.from("history_stories").insert({
+          title, content, story_date: date || null,
+          cover_image: imgData || null, image_type: imgType,
+          created_by: user.id,
+        });
+        if (e) throw e;
+      } else {
+        const { error: e } = await supabase.from("data_requests").insert({
+          request_type: "history", title, content,
+          story_date: date || null,
+          image_data: imgData || null, image_type: imgType,
+          status: "pending",
+        });
+        if (e) throw e;
+      }
+      onSaved();
+      onClose();
+    } catch (err) { setError(err.message); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ width: 540 }}>
+        <div className="modal-head">
+          <span className="modal-title">{isAdmin ? "Dodaj priču" : "Pošalji priču na odobravanje"}</span>
+          <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
+        </div>
+        <div className="modal-body">
+          <div className="form-grid">
+            <div className="form-field full">
+              <label className="form-label">Naslov priče *</label>
+              <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="npr. Doselavanje u Poljanу" />
+            </div>
+            <div className="form-field full">
+              <label className="form-label">Tekst priče *</label>
+              <textarea className="form-textarea" value={content} onChange={e => setContent(e.target.value)} placeholder="Ispišite priču ovde..." rows={7} style={{ minHeight: 140 }} />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Datum događaja</label>
+              <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Naslovna slika (opciono)</label>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
+              <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center" }} onClick={() => fileRef.current.click()}>
+                <Icon name="image" size={13} />{preview ? "Promijeni" : "Dodaj sliku"}
+              </button>
+            </div>
+            {preview && (
+              <div className="form-field full">
+                <img src={preview} alt="preview" style={{ width: "100%", maxHeight: 160, objectFit: "cover", border: "1px solid rgba(200,150,62,.2)" }} />
+              </div>
+            )}
+            {error && <div className="form-field full" style={{ color: "var(--rust)", fontSize: ".75rem" }}>{error}</div>}
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" onClick={onClose}>Otkaži</button>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? "Čuvanje..." : isAdmin ? "Dodaj priču" : "Pošalji zahtjev"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main HistoryView ──────────────────────────────────────────────────────────
+export default function HistoryView({ isAdmin, user }) {
+  const [stories, setStories]   = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [showAdd, setShowAdd]   = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("history_stories").select("*").order("story_date", { ascending: true });
+    setStories(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const formatDate = (d) => {
+    if (!d) return null;
+    return new Date(d).toLocaleDateString("sr-Latn", { year: "numeric", month: "long" });
+  };
+
+  const excerpt = (text, len = 120) => text.length > len ? text.slice(0, len) + "..." : text;
+
+  return (
+    <div className="gallery-wrap">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+        <p className="gallery-intro" style={{ margin: 0 }}>Историјат и приче породице Додеровић</p>
+        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+          <Icon name="plus" size={13} />{isAdmin ? "Dodaj priču" : "Pošalji priču"}
+        </button>
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "3rem", color: "#ccc" }}><Icon name="spinner" size={28} /></div>
+      ) : stories.length === 0 ? (
+        <div className="empty-state"><div className="empty-state-icon">📖</div><div className="empty-state-text">Još nema priča</div></div>
+      ) : (
+        <div className="gallery-grid">
+          {stories.map(story => (
+            <div key={story.id} className="gallery-item" onClick={() => setSelected(story)} style={{ cursor: "pointer" }}>
+              {story.cover_image ? (
+                <img src={`data:${story.image_type || "image/jpeg"};base64,${story.cover_image}`} alt={story.title} className="gallery-img" />
+              ) : (
+                <div className="gallery-img-placeholder story-placeholder">📖</div>
+              )}
+              <div className="gallery-caption">
+                <div className="gallery-caption-title">{story.title}</div>
+                {story.story_date && <div className="gallery-caption-sub">📅 {formatDate(story.story_date)}</div>}
+                <div className="gallery-caption-sub" style={{ marginTop: ".3rem", lineHeight: 1.5 }}>{excerpt(story.content)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selected && <StoryModal item={selected} onClose={() => setSelected(null)} />}
+      {showAdd && <AddStoryForm isAdmin={isAdmin} user={user} onSaved={load} onClose={() => setShowAdd(false)} />}
     </div>
   );
 }

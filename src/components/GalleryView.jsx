@@ -1,52 +1,159 @@
-// Zamijeniti pravim URL-ovima iz Supabase Storage
-const PHOTOS = [
-  {
-    id: 1,
-    url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80",
-    title: "Пољана, 1952. година",
-    sub: "Pogled na selo u jesen",
-  },
-  {
-    id: 2,
-    url: "https://images.unsplash.com/photo-1472791108553-c9405341e398?w=600&q=80",
-    title: "Породични збор, 1971.",
-    sub: "Прослава крсне славе — Додеровићи",
-  },
-  {
-    id: 3,
-    url: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=600&q=80",
-    title: "Стара кућа, 1938.",
-    sub: "Прадједова кућа у Пољани",
-  },
-];
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "../lib/supabase";
+import Icon from "./Icon";
 
-export default function GalleryView() {
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(",")[1]);
+    r.onerror = () => rej(new Error("Greška pri čitanju fajla"));
+    r.readAsDataURL(file);
+  });
+}
+
+function ImageModal({ item, onClose }) {
+  return (
+    <div className="overlay" style={{ zIndex: 1100 }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="gallery-modal">
+        <div className="gallery-modal-head">
+          <span className="modal-title">{item.title}</span>
+          <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
+        </div>
+        <img src={`data:${item.image_type || "image/jpeg"};base64,${item.image_data}`} alt={item.title} className="gallery-modal-img" />
+        {(item.description || item.photo_year) && (
+          <div className="gallery-modal-body">
+            {item.photo_year && <div className="gallery-modal-year">📅 {item.photo_year}. godina</div>}
+            {item.description && <p className="gallery-modal-desc">{item.description}</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AddPhotoForm({ isAdmin, user, onSaved, onClose }) {
+  const [title, setTitle]     = useState("");
+  const [desc, setDesc]       = useState("");
+  const [year, setYear]       = useState("");
+  const [imgData, setImgData] = useState(null);
+  const [imgType, setImgType] = useState("image/jpeg");
+  const [preview, setPreview] = useState(null);
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState("");
+  const fileRef               = useRef();
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) { setError("Slika mora biti manja od 3MB"); return; }
+    setImgType(file.type || "image/jpeg");
+    const b64 = await fileToBase64(file);
+    setImgData(b64);
+    setPreview(`data:${file.type};base64,${b64}`);
+    setError("");
+  };
+
+  const handleSave = async () => {
+    if (!title.trim() || !imgData) { setError("Naslov i slika su obavezni"); return; }
+    setSaving(true);
+    try {
+      if (isAdmin) {
+        const { error: e } = await supabase.from("gallery").insert({ title, description: desc || null, image_data: imgData, image_type: imgType, photo_year: year ? parseInt(year) : null, created_by: user.id });
+        if (e) throw e;
+      } else {
+        const { error: e } = await supabase.from("data_requests").insert({ request_type: "gallery", title, content: desc || null, image_data: imgData, image_type: imgType, photo_year: year ? parseInt(year) : null, status: "pending" });
+        if (e) throw e;
+      }
+      onSaved();
+      onClose();
+    } catch (err) { setError(err.message); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ width: 480 }}>
+        <div className="modal-head">
+          <span className="modal-title">{isAdmin ? "Dodaj fotografiju" : "Pošalji fotografiju na odobravanje"}</span>
+          <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
+        </div>
+        <div className="modal-body">
+          <div className="form-grid">
+            <div className="form-field full">
+              <label className="form-label">Naslov *</label>
+              <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="npr. Porodično okuplanje 1985." />
+            </div>
+            <div className="form-field full">
+              <label className="form-label">Fotografija * (max 3MB)</label>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
+              <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center" }} onClick={() => fileRef.current.click()}>
+                <Icon name="image" size={14} />{preview ? "Promijeni sliku" : "Odaberi sliku"}
+              </button>
+              {preview && <img src={preview} alt="preview" style={{ width: "100%", maxHeight: 200, objectFit: "cover", marginTop: ".5rem", border: "1px solid rgba(200,150,62,.2)" }} />}
+            </div>
+            <div className="form-field">
+              <label className="form-label">Godina nastanka</label>
+              <input className="form-input" type="number" value={year} onChange={e => setYear(e.target.value)} placeholder="npr. 1985" />
+            </div>
+            <div className="form-field full">
+              <label className="form-label">Opis</label>
+              <textarea className="form-textarea" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Kratki opis fotografije..." rows={3} />
+            </div>
+            {error && <div className="form-field full" style={{ color: "var(--rust)", fontSize: ".75rem" }}>{error}</div>}
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" onClick={onClose}>Otkaži</button>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? "Čuvanje..." : isAdmin ? "Dodaj" : "Pošalji zahtjev"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function GalleryView({ isAdmin, user }) {
+  const [items, setItems]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [showAdd, setShowAdd]   = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("gallery").select("id,title,description,image_data,image_type,photo_year,created_at").order("photo_year", { ascending: false });
+    setItems(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
   return (
     <div className="gallery-wrap">
-      <p className="gallery-intro">
-        Fotografije i dokumenti iz arhive породице Додеровић. Снимци покривају период
-        од почетка 20. вијека до данас — кућа, земља, збори и свечаности.
-      </p>
-      <div className="gallery-grid">
-        {PHOTOS.map(p => (
-          <div className="gallery-item" key={p.id}>
-            <img
-              className="gallery-img"
-              src={p.url}
-              alt={p.title}
-              onError={e => {
-                e.target.style.display = "none";
-                e.target.nextSibling.style.display = "flex";
-              }}
-            />
-            <div className="gallery-img-placeholder" style={{ display: "none" }}>📷</div>
-            <div className="gallery-caption">
-              <div className="gallery-caption-title">{p.title}</div>
-              <div className="gallery-caption-sub">{p.sub}</div>
-            </div>
-          </div>
-        ))}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+        <p className="gallery-intro" style={{ margin: 0 }}>Фотографије и успомене породице Додеровић</p>
+        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+          <Icon name="plus" size={13} />{isAdmin ? "Dodaj fotografiju" : "Pošalji fotografiju"}
+        </button>
       </div>
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "3rem", color: "#ccc" }}><Icon name="spinner" size={28} /></div>
+      ) : items.length === 0 ? (
+        <div className="empty-state"><div className="empty-state-icon">🖼️</div><div className="empty-state-text">Još nema fotografija</div></div>
+      ) : (
+        <div className="gallery-grid">
+          {items.map(item => (
+            <div key={item.id} className="gallery-item" onClick={() => setSelected(item)} style={{ cursor: "pointer" }}>
+              <img src={`data:${item.image_type || "image/jpeg"};base64,${item.image_data}`} alt={item.title} className="gallery-img" />
+              <div className="gallery-caption">
+                <div className="gallery-caption-title">{item.title}</div>
+                {item.photo_year && <div className="gallery-caption-sub">📅 {item.photo_year}. godina</div>}
+                {item.description && <div className="gallery-caption-sub" style={{ marginTop: ".2rem" }}>{item.description}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {selected && <ImageModal item={selected} onClose={() => setSelected(null)} />}
+      {showAdd && <AddPhotoForm isAdmin={isAdmin} user={user} onSaved={load} onClose={() => setShowAdd(false)} />}
     </div>
   );
 }
