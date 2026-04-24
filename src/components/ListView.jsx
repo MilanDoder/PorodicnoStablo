@@ -1,8 +1,10 @@
 import { useState } from "react";
 import Icon from "./Icon";
+import MemberTreeModal from "./MemberTreeModal";
 
 export default function ListView({ members, isAdmin, onEdit, onDelete }) {
-  const [q, setQ] = useState("");
+  const [q, setQ]           = useState("");
+  const [treeRoot, setTreeRoot] = useState(null); // otvara MemberTreeModal
 
   const filtered = members.filter(m =>
     `${m.first_name} ${m.last_name}`.toLowerCase().includes(q.toLowerCase())
@@ -30,6 +32,7 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
             <th>Godišta</th>
             <th>Roditelji</th>
             <th>Djeca</th>
+            <th>Stablo</th>
             {isAdmin && <th>Akcije</th>}
           </tr>
         </thead>
@@ -37,9 +40,16 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
           {filtered.map(m => {
             const parents  = members.filter(p => (m.parent_ids || []).includes(p.id));
             const children = members.filter(c => (c.parent_ids || []).includes(m.id));
+            const hasChildren = children.length > 0;
+
             return (
               <tr key={m.id}>
-                <td><strong>{m.first_name} {m.last_name}</strong></td>
+                <td>
+                  <strong>
+                    {m.featured && <span style={{ color: "var(--gold)", marginRight: ".3rem" }}>★</span>}
+                    {m.first_name} {m.last_name}
+                  </strong>
+                </td>
                 <td>
                   <span className={`gbadge ${m.gender}`}>
                     {m.gender === "male" ? "👨 Muški" : "👩 Ženski"}
@@ -57,8 +67,22 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
                     : <span style={{ color: "#ccc" }}>—</span>}
                 </td>
                 <td style={{ fontSize: ".73rem" }}>
-                  {children.length > 0 ? children.length : <span style={{ color: "#ccc" }}>0</span>}
+                  {hasChildren ? children.length : <span style={{ color: "#ccc" }}>0</span>}
                 </td>
+
+                {/* ── Stablo dugme ── */}
+                <td>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={!hasChildren ? { opacity: .3, cursor: "not-allowed", pointerEvents: "none" } : {}}
+                    disabled={!hasChildren}
+                    onClick={() => setTreeRoot(m)}
+                    title={hasChildren ? `Prikaži stablo: ${m.first_name} ${m.last_name}` : "Nema potomaka"}
+                  >
+                    🌳
+                  </button>
+                </td>
+
                 {isAdmin && (
                   <td>
                     <div style={{ display: "flex", gap: ".35rem" }}>
@@ -79,6 +103,15 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
           })}
         </tbody>
       </table>
+
+      {/* ── Popup stablo ── */}
+      {treeRoot && (
+        <MemberTreeModal
+          root={treeRoot}
+          allMembers={members}
+          onClose={() => setTreeRoot(null)}
+        />
+      )}
     </div>
   );
 }
