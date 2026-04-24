@@ -329,8 +329,8 @@ export default function App() {
       {/* ── Sidebar ── */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <div className="sidebar-logo">🌳 Додеровићи</div>
-          <div className="sidebar-sub">Пољана · Породична архива</div>
+          <div className="sidebar-logo">🌳 Додеровићи и Додери</div>
+          <div className="sidebar-sub">Породична архива</div>
         </div>
         <div className="sidebar-user">
           <div className="sidebar-avatar">{displayName[0]?.toUpperCase()}</div>
