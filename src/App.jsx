@@ -304,13 +304,15 @@ export default function App() {
           <div className="sidebar-credits">
             <div className="credits-divider" />
             <div className="credits-text">
-              <span className="credits-label">Идеја и садржај</span>
-              <span className="credits-name">Бранко Светозаров Додеровић</span>
-            </div>
-            <div className="credits-text">
+              <div className="credits-text">
               <span className="credits-label">Дигитализација</span>
-              <span className="credits-name">Милан Додеровић</span>
+              <span className="credits-name">Светозар-Милан Миљанов Додеровић</span>
             </div>
+              <span className="credits-label">Садржај</span>
+              <span className="credits-name">Мићо Обрадов Додеровић до Новембра 1990. године</span>
+              <span className="credits-name">Бранко Светозаров Додеровић до Октобра 2017. године</span>
+            </div>
+
             <div className="credits-divider" />
           </div>
           <button className="logout-btn" onClick={handleLogout}>
