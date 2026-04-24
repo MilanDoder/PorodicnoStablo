@@ -187,7 +187,7 @@ export default function MemberTreeModal({ root, allMembers, onClose }) {
           <div>
             <div className="mtm-title">
               {root.featured && <span style={{ color: "var(--gold)", marginRight: ".4rem" }}>★</span>}
-              Stablo: {root.first_name} {root.last_name}
+              Породично стабло: {root.first_name} {root.last_name}
             </div>
             <div className="mtm-sub">
               {root.generational_line ? `${root.generational_line}. koleno · ` : ""}
