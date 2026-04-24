@@ -11,7 +11,6 @@ function fileToBase64(file) {
   });
 }
 
-// ── Story popup ───────────────────────────────────────────────────────────────
 function StoryModal({ item, onClose }) {
   return (
     <div className="overlay" style={{ zIndex: 1100 }} onClick={e => e.target === e.currentTarget && onClose()}>
@@ -36,14 +35,14 @@ function StoryModal({ item, onClose }) {
   );
 }
 
-// ── Add Story Form ────────────────────────────────────────────────────────────
-function AddStoryForm({ isAdmin, user, onSaved, onClose }) {
-  const [title, setTitle]     = useState("");
-  const [content, setContent] = useState("");
-  const [date, setDate]       = useState("");
-  const [imgData, setImgData] = useState(null);
-  const [imgType, setImgType] = useState("image/jpeg");
-  const [preview, setPreview] = useState(null);
+function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
+  const isEdit = !!item;
+  const [title, setTitle]     = useState(item?.title || "");
+  const [content, setContent] = useState(item?.content || "");
+  const [date, setDate]       = useState(item?.story_date || "");
+  const [imgData, setImgData] = useState(item?.cover_image || null);
+  const [imgType, setImgType] = useState(item?.image_type || "image/jpeg");
+  const [preview, setPreview] = useState(item?.cover_image ? `data:${item.image_type};base64,${item.cover_image}` : null);
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState("");
   const fileRef               = useRef();
@@ -60,14 +59,20 @@ function AddStoryForm({ isAdmin, user, onSaved, onClose }) {
   };
 
   const handleSave = async () => {
-    if (!title.trim() || !content.trim()) { setError("Naslov i tekst priče su obavezni"); return; }
+    if (!title.trim() || !content.trim()) { setError("Naslov i tekst su obavezni"); return; }
     setSaving(true);
     try {
-      if (isAdmin) {
+      if (isEdit) {
+        const { error: e } = await supabase.from("history_stories").update({
+          title, content, story_date: date || null,
+          cover_image: imgData || null, image_type: imgType,
+        }).eq("id", item.id);
+        if (e) throw e;
+      } else if (isAdmin) {
         const { error: e } = await supabase.from("history_stories").insert({
           title, content, story_date: date || null,
           cover_image: imgData || null, image_type: imgType,
-          user_id: user.id,
+          created_by: user.id,
         });
         if (e) throw e;
       } else {
@@ -75,9 +80,7 @@ function AddStoryForm({ isAdmin, user, onSaved, onClose }) {
           request_type: "history", title, content,
           story_date: date || null,
           image_data: imgData || null, image_type: imgType,
-          status: "pending",
-          user_id: user.id,
-          user_email: user.email,
+          status: "pending", user_id: user.id, user_email: user.email,
         });
         if (e) throw e;
       }
@@ -91,14 +94,14 @@ function AddStoryForm({ isAdmin, user, onSaved, onClose }) {
     <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ width: 540 }}>
         <div className="modal-head">
-          <span className="modal-title">{isAdmin ? "Dodaj priču" : "Pošalji priču na odobravanje"}</span>
+          <span className="modal-title">{isEdit ? "Uredi priču" : isAdmin ? "Dodaj priču" : "Pošalji priču na odobravanje"}</span>
           <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
         </div>
         <div className="modal-body">
           <div className="form-grid">
             <div className="form-field full">
               <label className="form-label">Naslov priče *</label>
-              <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="npr. Doselavanje u Poljanу" />
+              <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="npr. Doselavanje u Poljanu" />
             </div>
             <div className="form-field full">
               <label className="form-label">Tekst priče *</label>
@@ -125,18 +128,20 @@ function AddStoryForm({ isAdmin, user, onSaved, onClose }) {
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" onClick={onClose}>Otkaži</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? "Čuvanje..." : isAdmin ? "Dodaj priču" : "Pošalji zahtjev"}</button>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? "Čuvanje..." : isEdit ? "Sačuvaj" : isAdmin ? "Dodaj priču" : "Pošalji zahtjev"}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Main HistoryView ──────────────────────────────────────────────────────────
 export default function HistoryView({ isAdmin, user }) {
   const [stories, setStories]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState(null);
+  const [editItem, setEditItem] = useState(null);
   const [showAdd, setShowAdd]   = useState(false);
 
   const load = async () => {
@@ -148,11 +153,13 @@ export default function HistoryView({ isAdmin, user }) {
 
   useEffect(() => { load(); }, []);
 
-  const formatDate = (d) => {
-    if (!d) return null;
-    return new Date(d).toLocaleDateString("sr-Latn", { year: "numeric", month: "long" });
+  const handleDelete = async (id) => {
+    if (!window.confirm("Obrisati ovu priču?")) return;
+    await supabase.from("history_stories").delete().eq("id", id);
+    load();
   };
 
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString("sr-Latn", { year: "numeric", month: "long" }) : null;
   const excerpt = (text, len = 120) => text.length > len ? text.slice(0, len) + "..." : text;
 
   return (
@@ -171,16 +178,26 @@ export default function HistoryView({ isAdmin, user }) {
       ) : (
         <div className="gallery-grid">
           {stories.map(story => (
-            <div key={story.id} className="gallery-item" onClick={() => setSelected(story)} style={{ cursor: "pointer" }}>
+            <div key={story.id} className="gallery-item">
               {story.cover_image ? (
-                <img src={`data:${story.image_type || "image/jpeg"};base64,${story.cover_image}`} alt={story.title} className="gallery-img" />
+                <img src={`data:${story.image_type || "image/jpeg"};base64,${story.cover_image}`} alt={story.title} className="gallery-img" style={{ cursor: "pointer" }} onClick={() => setSelected(story)} />
               ) : (
-                <div className="gallery-img-placeholder story-placeholder">📖</div>
+                <div className="gallery-img-placeholder story-placeholder" style={{ cursor: "pointer" }} onClick={() => setSelected(story)}>📖</div>
               )}
               <div className="gallery-caption">
-                <div className="gallery-caption-title">{story.title}</div>
+                <div className="gallery-caption-title" style={{ cursor: "pointer" }} onClick={() => setSelected(story)}>{story.title}</div>
                 {story.story_date && <div className="gallery-caption-sub">📅 {formatDate(story.story_date)}</div>}
                 <div className="gallery-caption-sub" style={{ marginTop: ".3rem", lineHeight: 1.5 }}>{excerpt(story.content)}</div>
+                {isAdmin && (
+                  <div style={{ display: "flex", gap: ".4rem", marginTop: ".6rem" }}>
+                    <button className="btn btn-ghost btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => setEditItem(story)}>
+                      <Icon name="edit" size={11} />Uredi
+                    </button>
+                    <button className="btn btn-danger btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleDelete(story.id)}>
+                      <Icon name="trash" size={11} />Obriši
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -188,7 +205,14 @@ export default function HistoryView({ isAdmin, user }) {
       )}
 
       {selected && <StoryModal item={selected} onClose={() => setSelected(null)} />}
-      {showAdd && <AddStoryForm isAdmin={isAdmin} user={user} onSaved={load} onClose={() => setShowAdd(false)} />}
+      {(showAdd || editItem) && (
+        <StoryForm
+          isAdmin={isAdmin} user={user}
+          item={editItem || null}
+          onSaved={load}
+          onClose={() => { setShowAdd(false); setEditItem(null); }}
+        />
+      )}
     </div>
   );
 }
