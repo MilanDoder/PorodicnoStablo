@@ -28,9 +28,10 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
   const renderNode = (m, showAddChild = false) => (
     <div
       data-member-id={m.id}
-      className={`member-node ${m.gender}${selected?.id === m.id ? " sel" : ""}`}
+      className={`member-node ${m.gender}${selected?.id === m.id ? " sel" : ""}${m.featured ? " featured" : ""}`}
       onClick={() => onSelect(m)}
     >
+      {m.featured && <span className="node-featured-badge" title="Istaknuti član">★</span>}
       <div className="node-name">{m.first_name}<br />{m.last_name}</div>
       {m.birth_year && (
         <div className="node-note">{m.birth_year}{m.death_year ? `–${m.death_year}` : ""}</div>
@@ -105,4 +106,3 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
     </div>
   );
 }
-
