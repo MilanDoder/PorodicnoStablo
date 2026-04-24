@@ -16,7 +16,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
 
   const [f, setF] = useState(member || {
     first_name: "", last_name: "Додеровић", birth_year: "", death_year: "",
-    gender: "male", spouse_id: null, notes: "", parent_ids: [], generational_line: null, featured: false,
+    gender: "male", spouse_id: null, notes: "", parent_ids: [], generational_line: null, featured: false, featured_note: "",
   });
   const [childIds, setChildIds] = useState(existingChildIds);
   const [saving, setSaving] = useState(false);
@@ -88,6 +88,19 @@ export default function MemberModal({ member, members, onSave, onClose }) {
                 ★ Istaknuti član
               </label>
             </div>
+            {f.featured && (
+              <div className="form-field full">
+                <label className="form-label">★ Posebna napomena (istaknuti član)</label>
+                <textarea
+                  className="form-textarea"
+                  value={f.featured_note || ""}
+                  onChange={e => set("featured_note", e.target.value)}
+                  placeholder="Kratka napomena koja će biti istaknuta uz ime ovog člana..."
+                  rows={3}
+                />
+              </div>
+            )}
+
             <div className="form-field full">
               <label className="form-label">Roditelji</label>
               <select

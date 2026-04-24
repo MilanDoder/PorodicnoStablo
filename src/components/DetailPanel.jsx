@@ -45,6 +45,14 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
           {member.gender === "male" ? "Muški" : "Ženski"}
           {member.death_year ? " · Preminuo/la" : ""}
         </div>
+        {member.featured && (
+          <div className="dp-featured-badge">
+            <span>★</span> Istaknuti član
+          </div>
+        )}
+        {member.featured && member.featured_note && (
+          <div className="dp-featured-note">{member.featured_note}</div>
+        )}
       </div>
 
       <div className="dp-body">

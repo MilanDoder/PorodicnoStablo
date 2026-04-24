@@ -844,3 +844,317 @@ body { font-family: 'Josefin Sans', sans-serif; background: var(--cream); color:
 }
 .mtm-info-close:hover { color: var(--rust); }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   DODATI NA DNo global.css
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Istaknuti član (featured) ───────────────────────────────────────────────── */
+.member-node.featured {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(200,150,62,.18), 0 2px 6px rgba(26,16,8,.07);
+}
+.member-node.featured .node-name {
+  color: var(--gold-dark);
+}
+.node-featured-badge {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: .7rem;
+  color: var(--gold);
+  background: white;
+  line-height: 1;
+  padding: 0 2px;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.15));
+}
+/* Kad je i selektovan i featured — gold outline ostaje vidljiv */
+.member-node.featured.sel {
+  outline: 2.5px solid var(--gold-light);
+  box-shadow: 0 0 0 5px rgba(200,150,62,.3);
+}
+
+/* ── Flash animacija (scroll-to highlight) ──────────────────────────────────── */
+@keyframes nodeFlash {
+  0%   { outline: 3px solid var(--gold); outline-offset: 3px; box-shadow: 0 0 0 6px rgba(200,150,62,.35); }
+  50%  { outline: 3px solid var(--gold-light); outline-offset: 5px; box-shadow: 0 0 0 10px rgba(200,150,62,.15); }
+  100% { outline: 3px solid var(--gold); outline-offset: 3px; box-shadow: 0 0 0 6px rgba(200,150,62,.35); }
+}
+.member-node.node-flash {
+  animation: nodeFlash 0.4s ease 0s 3;
+  z-index: 10;
+}
+
+/* ── Mini-mapa ───────────────────────────────────────────────────────────────── */
+.minimap-wrap {
+  position: absolute;
+  bottom: 1rem;
+  right: 270px; /* levo od detail panela (260px) + gap */
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(200,150,62,.3);
+  box-shadow: 0 2px 12px rgba(26,16,8,.12);
+  padding: .35rem .45rem .4rem;
+  z-index: 20;
+  user-select: none;
+}
+.minimap-label {
+  font-size: .52rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+  margin-bottom: .25rem;
+}
+.minimap-canvas {
+  display: block;
+  cursor: crosshair;
+  background: var(--cream);
+  border: 1px solid rgba(200,150,62,.15);
+}
+
+/* ── Person chip (navigacija u detail panelu) ───────────────────────────────── */
+.dp-nav-group {
+  margin-bottom: .6rem;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+.dp-chips {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+.dp-person-chip {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .3rem .5rem;
+  background: var(--cream);
+  border: 1px solid rgba(200,150,62,.25);
+  cursor: pointer;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: .72rem;
+  color: var(--ink);
+  text-align: left;
+  transition: all .15s;
+  width: 100%;
+}
+.dp-person-chip:hover {
+  background: rgba(200,150,62,.1);
+  border-color: var(--gold);
+  color: var(--gold-dark);
+}
+.dp-person-chip svg {
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: .5;
+}
+.dp-person-chip:hover svg {
+  opacity: 1;
+}
+
+/* ── Mobilni / touch poboljšanja ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Sakrij sidebar, prikaži samo navigacione tabove na dnu */
+  .app-layout { flex-direction: column; }
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-shrink: 0;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid rgba(200,150,62,.2);
+    overflow-x: auto;
+  }
+  .sidebar-header,
+  .sidebar-user,
+  .sidebar-footer { display: none; }
+  .sidebar-nav {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    padding: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .nav-item {
+    flex-direction: column;
+    gap: .2rem;
+    padding: .5rem .7rem;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    font-size: .55rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .nav-item.active {
+    border-left-color: transparent;
+    border-bottom-color: var(--gold);
+  }
+
+  /* Detail panel na mobilnom — slideup overlay */
+  .detail-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 55vh;
+    overflow-y: auto;
+    z-index: 100;
+    border-left: none;
+    border-top: 2px solid rgba(200,150,62,.3);
+    box-shadow: 0 -4px 24px rgba(26,16,8,.2);
+    animation: slideUp .25s ease;
+  }
+
+  /* Mini-mapa na mobilnom — desno gore */
+  .minimap-wrap {
+    bottom: auto;
+    top: .5rem;
+    right: .5rem;
+  }
+  .minimap-canvas { width: 120px; height: 75px; }
+
+  /* Zoom kontrole na mobilnom */
+  .tree-controls {
+    right: .5rem;
+    bottom: 4rem;
+  }
+
+  /* Topbar na mobilnom */
+  .topbar { padding: .5rem .75rem; }
+  .topbar-title { font-size: 1.1rem; }
+}
+
+/* ── MemberTreeModal ─────────────────────────────────────────────────────────── */
+.mtm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 6, 2, 0.72);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn .2s ease;
+}
+.mtm-modal {
+  position: relative;
+  width: min(96vw, 1100px);
+  height: min(90vh, 780px);
+  background: var(--cream);
+  border: 1px solid rgba(200,150,62,.35);
+  box-shadow: 0 12px 60px rgba(10,6,2,.45);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeUp .22s ease;
+}
+.mtm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .9rem 1.25rem;
+  background: #1a1008;
+  border-bottom: 1px solid rgba(200,150,62,.2);
+  flex-shrink: 0;
+}
+.mtm-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  color: var(--gold-light);
+}
+.mtm-sub {
+  font-size: .6rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(200,150,62,.5);
+  margin-top: .1rem;
+}
+.mtm-close {
+  background: none;
+  border: none;
+  color: rgba(200,150,62,.6);
+  cursor: pointer;
+  padding: .3rem;
+  transition: color .15s;
+  display: flex;
+  align-items: center;
+}
+.mtm-close:hover { color: var(--gold-light); }
+.mtm-canvas {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background: var(--cream);
+}
+.mtm-inner {
+  padding: 40px;
+  min-width: max-content;
+  display: flex;
+  justify-content: center;
+  transform-origin: top center;
+}
+.mtm-controls {
+  position: absolute;
+  bottom: 3.5rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  z-index: 10;
+}
+.mtm-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid rgba(200,150,62,.2);
+  padding: .5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  font-size: .78rem;
+  color: var(--ink);
+  animation: slideUp .18s ease;
+  z-index: 10;
+}
+.mtm-info strong { font-weight: 600; }
+.mtm-info-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #bbb;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.mtm-info-close:hover { color: var(--rust); }
+
+/* ── Featured badge i napomena u DetailPanel-u ───────────────────────────────── */
+.dp-featured-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  margin-top: .5rem;
+  background: rgba(200,150,62,.15);
+  border: 1px solid rgba(200,150,62,.4);
+  color: var(--gold-light);
+  font-size: .6rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: .2rem .55rem;
+}
+.dp-featured-note {
+  margin-top: .45rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: .88rem;
+  color: rgba(232,184,90,.75);
+  line-height: 1.45;
+  border-left: 2px solid rgba(200,150,62,.35);
+  padding-left: .6rem;
+}
+
