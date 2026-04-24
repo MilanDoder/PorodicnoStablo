@@ -31,13 +31,14 @@ function ImageModal({ item, onClose }) {
   );
 }
 
-function AddPhotoForm({ isAdmin, user, onSaved, onClose }) {
-  const [title, setTitle]     = useState("");
-  const [desc, setDesc]       = useState("");
-  const [year, setYear]       = useState("");
-  const [imgData, setImgData] = useState(null);
-  const [imgType, setImgType] = useState("image/jpeg");
-  const [preview, setPreview] = useState(null);
+function PhotoForm({ isAdmin, user, item, onSaved, onClose }) {
+  const isEdit = !!item;
+  const [title, setTitle]     = useState(item?.title || "");
+  const [desc, setDesc]       = useState(item?.description || "");
+  const [year, setYear]       = useState(item?.photo_year || "");
+  const [imgData, setImgData] = useState(item?.image_data || null);
+  const [imgType, setImgType] = useState(item?.image_type || "image/jpeg");
+  const [preview, setPreview] = useState(item?.image_data ? `data:${item.image_type};base64,${item.image_data}` : null);
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState("");
   const fileRef               = useRef();
@@ -57,11 +58,28 @@ function AddPhotoForm({ isAdmin, user, onSaved, onClose }) {
     if (!title.trim() || !imgData) { setError("Naslov i slika su obavezni"); return; }
     setSaving(true);
     try {
-      if (isAdmin) {
-        const { error: e } = await supabase.from("gallery").insert({ title, description: desc || null, image_data: imgData, image_type: imgType, photo_year: year ? parseInt(year) : null, created_by: user.id });
+      if (isEdit) {
+        const { error: e } = await supabase.from("gallery").update({
+          title, description: desc || null,
+          image_data: imgData, image_type: imgType,
+          photo_year: year ? parseInt(year) : null,
+        }).eq("id", item.id);
+        if (e) throw e;
+      } else if (isAdmin) {
+        const { error: e } = await supabase.from("gallery").insert({
+          title, description: desc || null,
+          image_data: imgData, image_type: imgType,
+          photo_year: year ? parseInt(year) : null,
+          user_id: user.id,
+        });
         if (e) throw e;
       } else {
-        const { error: e } = await supabase.from("data_requests").insert({ request_type: "gallery", title, content: desc || null, image_data: imgData, image_type: imgType, photo_year: year ? parseInt(year) : null, status: "pending", user_id: user.id, user_email: user.email });
+        const { error: e } = await supabase.from("data_requests").insert({
+          request_type: "gallery", title, content: desc || null,
+          image_data: imgData, image_type: imgType,
+          photo_year: year ? parseInt(year) : null,
+          status: "pending", user_id: user.id, user_email: user.email,
+        });
         if (e) throw e;
       }
       onSaved();
@@ -74,7 +92,7 @@ function AddPhotoForm({ isAdmin, user, onSaved, onClose }) {
     <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ width: 480 }}>
         <div className="modal-head">
-          <span className="modal-title">{isAdmin ? "Dodaj fotografiju" : "Pošalji fotografiju na odobravanje"}</span>
+          <span className="modal-title">{isEdit ? "Uredi fotografiju" : isAdmin ? "Dodaj fotografiju" : "Pošalji fotografiju na odobravanje"}</span>
           <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
         </div>
         <div className="modal-body">
@@ -104,7 +122,9 @@ function AddPhotoForm({ isAdmin, user, onSaved, onClose }) {
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" onClick={onClose}>Otkaži</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? "Čuvanje..." : isAdmin ? "Dodaj" : "Pošalji zahtjev"}</button>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? "Čuvanje..." : isEdit ? "Sačuvaj" : isAdmin ? "Dodaj" : "Pošalji zahtjev"}
+          </button>
         </div>
       </div>
     </div>
@@ -115,16 +135,23 @@ export default function GalleryView({ isAdmin, user }) {
   const [items, setItems]       = useState([]);
   const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState(null);
+  const [editItem, setEditItem] = useState(null);
   const [showAdd, setShowAdd]   = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("gallery").select("id,title,description,image_data,image_type,photo_year,created_at").order("photo_year", { ascending: false });
+    const { data } = await supabase.from("gallery").select("*").order("photo_year", { ascending: false });
     setItems(data || []);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Obrisati ovu fotografiju?")) return;
+    await supabase.from("gallery").delete().eq("id", id);
+    load();
+  };
 
   return (
     <div className="gallery-wrap">
@@ -134,6 +161,7 @@ export default function GalleryView({ isAdmin, user }) {
           <Icon name="plus" size={13} />{isAdmin ? "Dodaj fotografiju" : "Pošalji fotografiju"}
         </button>
       </div>
+
       {loading ? (
         <div style={{ textAlign: "center", padding: "3rem", color: "#ccc" }}><Icon name="spinner" size={28} /></div>
       ) : items.length === 0 ? (
@@ -141,19 +169,43 @@ export default function GalleryView({ isAdmin, user }) {
       ) : (
         <div className="gallery-grid">
           {items.map(item => (
-            <div key={item.id} className="gallery-item" onClick={() => setSelected(item)} style={{ cursor: "pointer" }}>
-              <img src={`data:${item.image_type || "image/jpeg"};base64,${item.image_data}`} alt={item.title} className="gallery-img" />
+            <div key={item.id} className="gallery-item">
+              <img
+                src={`data:${item.image_type || "image/jpeg"};base64,${item.image_data}`}
+                alt={item.title}
+                className="gallery-img"
+                style={{ cursor: "pointer" }}
+                onClick={() => setSelected(item)}
+              />
               <div className="gallery-caption">
-                <div className="gallery-caption-title">{item.title}</div>
+                <div className="gallery-caption-title" style={{ cursor: "pointer" }} onClick={() => setSelected(item)}>{item.title}</div>
                 {item.photo_year && <div className="gallery-caption-sub">📅 {item.photo_year}. godina</div>}
                 {item.description && <div className="gallery-caption-sub" style={{ marginTop: ".2rem" }}>{item.description}</div>}
+                {isAdmin && (
+                  <div style={{ display: "flex", gap: ".4rem", marginTop: ".6rem" }}>
+                    <button className="btn btn-ghost btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => setEditItem(item)}>
+                      <Icon name="edit" size={11} />Uredi
+                    </button>
+                    <button className="btn btn-danger btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleDelete(item.id)}>
+                      <Icon name="trash" size={11} />Obriši
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
+
       {selected && <ImageModal item={selected} onClose={() => setSelected(null)} />}
-      {showAdd && <AddPhotoForm isAdmin={isAdmin} user={user} onSaved={load} onClose={() => setShowAdd(false)} />}
+      {(showAdd || editItem) && (
+        <PhotoForm
+          isAdmin={isAdmin} user={user}
+          item={editItem || null}
+          onSaved={load}
+          onClose={() => { setShowAdd(false); setEditItem(null); }}
+        />
+      )}
     </div>
   );
 }
