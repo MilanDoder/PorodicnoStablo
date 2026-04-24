@@ -50,7 +50,7 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
   const handleFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) { setError("Slika mora biti manja od 3MB"); return; }
+    if (file.size > 3 * 1024 * 1024) { setError("Слика мора бити мања од 3MB"); return; }
     setImgType(file.type || "image/jpeg");
     const b64 = await fileToBase64(file);
     setImgData(b64);
@@ -59,7 +59,7 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
   };
 
   const handleSave = async () => {
-    if (!title.trim() || !content.trim()) { setError("Naslov i tekst su obavezni"); return; }
+    if (!title.trim() || !content.trim()) { setError("Наслов и текст су обавезни"); return; }
     setSaving(true);
     try {
       if (isEdit) {
@@ -94,28 +94,28 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
     <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ width: 540 }}>
         <div className="modal-head">
-          <span className="modal-title">{isEdit ? "Uredi priču" : isAdmin ? "Dodaj priču" : "Pošalji priču na odobravanje"}</span>
+          <span className="modal-title">{isEdit ? "Уреди причу" : isAdmin ? "Додај причу" : "Пошаљи причу на одобравање"}</span>
           <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
         </div>
         <div className="modal-body">
           <div className="form-grid">
             <div className="form-field full">
-              <label className="form-label">Naslov priče *</label>
-              <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="npr. Doselavanje u Poljanu" />
+              <label className="form-label">Наслов приче *</label>
+              <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="нпр. Досељење у Пољану" />
             </div>
             <div className="form-field full">
-              <label className="form-label">Tekst priče *</label>
-              <textarea className="form-textarea" value={content} onChange={e => setContent(e.target.value)} placeholder="Ispišite priču ovde..." rows={7} style={{ minHeight: 140 }} />
+              <label className="form-label">Текст приче *</label>
+              <textarea className="form-textarea" value={content} onChange={e => setContent(e.target.value)} placeholder="Испишите причу овде..." rows={7} style={{ minHeight: 140 }} />
             </div>
             <div className="form-field">
-              <label className="form-label">Datum događaja</label>
+              <label className="form-label">Датум догађаја</label>
               <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
             </div>
             <div className="form-field">
-              <label className="form-label">Naslovna slika (opciono)</label>
+              <label className="form-label">Насловна слика(опционо)</label>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
               <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center" }} onClick={() => fileRef.current.click()}>
-                <Icon name="image" size={13} />{preview ? "Promijeni" : "Dodaj sliku"}
+                <Icon name="image" size={13} />{preview ? "Промјени" : "Додај слику"}
               </button>
             </div>
             {preview && (
@@ -127,9 +127,9 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
           </div>
         </div>
         <div className="modal-foot">
-          <button className="btn btn-ghost" onClick={onClose}>Otkaži</button>
+          <button className="btn btn-ghost" onClick={onClose}>Откажи</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? "Čuvanje..." : isEdit ? "Sačuvaj" : isAdmin ? "Dodaj priču" : "Pošalji zahtjev"}
+            {saving ? "Чување..." : isEdit ? "Сачувај" : isAdmin ? "Dodaj priču" : "Пошаљи захтев..."}
           </button>
         </div>
       </div>
@@ -154,7 +154,7 @@ export default function HistoryView({ isAdmin, user }) {
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Obrisati ovu priču?")) return;
+    if (!window.confirm("Обрисати ову причу?")) return;
     await supabase.from("history_stories").delete().eq("id", id);
     load();
   };
@@ -165,16 +165,16 @@ export default function HistoryView({ isAdmin, user }) {
   return (
     <div className="gallery-wrap">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-        <p className="gallery-intro" style={{ margin: 0 }}>Историјат и приче породице Додеровић</p>
+        <p className="gallery-intro" style={{ margin: 0 }}>Историјат и приче породице Додеровић и Додер</p>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          <Icon name="plus" size={13} />{isAdmin ? "Dodaj priču" : "Pošalji priču"}
+          <Icon name="plus" size={13} />{isAdmin ? "Додај причу" : "Пошаљи причу"}
         </button>
       </div>
 
       {loading ? (
         <div style={{ textAlign: "center", padding: "3rem", color: "#ccc" }}><Icon name="spinner" size={28} /></div>
       ) : stories.length === 0 ? (
-        <div className="empty-state"><div className="empty-state-icon">📖</div><div className="empty-state-text">Još nema priča</div></div>
+        <div className="empty-state"><div className="empty-state-icon">📖</div><div className="empty-state-text">Још нема прича</div></div>
       ) : (
         <div className="gallery-grid">
           {stories.map(story => (
@@ -191,10 +191,10 @@ export default function HistoryView({ isAdmin, user }) {
                 {isAdmin && (
                   <div style={{ display: "flex", gap: ".4rem", marginTop: ".6rem" }}>
                     <button className="btn btn-ghost btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => setEditItem(story)}>
-                      <Icon name="edit" size={11} />Uredi
+                      <Icon name="edit" size={11} />Уреди
                     </button>
                     <button className="btn btn-danger btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleDelete(story.id)}>
-                      <Icon name="trash" size={11} />Obriši
+                      <Icon name="trash" size={11} />Обриши
                     </button>
                   </div>
                 )}

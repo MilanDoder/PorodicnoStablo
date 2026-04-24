@@ -46,7 +46,7 @@ function PhotoForm({ isAdmin, user, item, onSaved, onClose }) {
   const handleFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) { setError("Slika mora biti manja od 3MB"); return; }
+    if (file.size > 3 * 1024 * 1024) { setError("Слика мора бити мања од 3MB"); return; }
     setImgType(file.type || "image/jpeg");
     const b64 = await fileToBase64(file);
     setImgData(b64);
@@ -55,7 +55,7 @@ function PhotoForm({ isAdmin, user, item, onSaved, onClose }) {
   };
 
   const handleSave = async () => {
-    if (!title.trim() || !imgData) { setError("Naslov i slika su obavezni"); return; }
+    if (!title.trim() || !imgData) { setError("Наслов и слика су обавезни"); return; }
     setSaving(true);
     try {
       if (isEdit) {
@@ -92,30 +92,30 @@ function PhotoForm({ isAdmin, user, item, onSaved, onClose }) {
     <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ width: 480 }}>
         <div className="modal-head">
-          <span className="modal-title">{isEdit ? "Uredi fotografiju" : isAdmin ? "Dodaj fotografiju" : "Pošalji fotografiju na odobravanje"}</span>
+          <span className="modal-title">{isEdit ? "Уреди фотографију" : isAdmin ? "Додај фотографију" : "Пошаљи фотографију на одобравање"}</span>
           <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
         </div>
         <div className="modal-body">
           <div className="form-grid">
             <div className="form-field full">
-              <label className="form-label">Naslov *</label>
-              <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="npr. Porodično okuplanje 1985." />
+              <label className="form-label">Наслов *</label>
+              <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="нпр. Породично окупљање 1985. године." />
             </div>
             <div className="form-field full">
-              <label className="form-label">Fotografija * (max 3MB)</label>
+              <label className="form-label">Фотографија * (max 3MB)</label>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
               <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center" }} onClick={() => fileRef.current.click()}>
-                <Icon name="image" size={14} />{preview ? "Promijeni sliku" : "Odaberi sliku"}
+                <Icon name="image" size={14} />{preview ? "Промјени слику" : "Одабери слику"}
               </button>
               {preview && <img src={preview} alt="preview" style={{ width: "100%", maxHeight: 200, objectFit: "cover", marginTop: ".5rem", border: "1px solid rgba(200,150,62,.2)" }} />}
             </div>
             <div className="form-field">
-              <label className="form-label">Godina nastanka</label>
+              <label className="form-label">Година настанка</label>
               <input className="form-input" type="number" value={year} onChange={e => setYear(e.target.value)} placeholder="npr. 1985" />
             </div>
             <div className="form-field full">
-              <label className="form-label">Opis</label>
-              <textarea className="form-textarea" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Kratki opis fotografije..." rows={3} />
+              <label className="form-label">Опис</label>
+              <textarea className="form-textarea" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Кратки опис фотографије..." rows={3} />
             </div>
             {error && <div className="form-field full" style={{ color: "var(--rust)", fontSize: ".75rem" }}>{error}</div>}
           </div>
@@ -123,7 +123,7 @@ function PhotoForm({ isAdmin, user, item, onSaved, onClose }) {
         <div className="modal-foot">
           <button className="btn btn-ghost" onClick={onClose}>Otkaži</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? "Čuvanje..." : isEdit ? "Sačuvaj" : isAdmin ? "Dodaj" : "Pošalji zahtjev"}
+            {saving ? "Чување...." : isEdit ? "Сачувај" : isAdmin ? "Додај" : "Пошаљи захтев"}
           </button>
         </div>
       </div>
@@ -156,16 +156,16 @@ export default function GalleryView({ isAdmin, user }) {
   return (
     <div className="gallery-wrap">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-        <p className="gallery-intro" style={{ margin: 0 }}>Фотографије и успомене породице Додеровић</p>
+        <p className="gallery-intro" style={{ margin: 0 }}>Фотографије и успомене породице Додеровић и Додер</p>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          <Icon name="plus" size={13} />{isAdmin ? "Dodaj fotografiju" : "Pošalji fotografiju"}
+          <Icon name="plus" size={13} />{isAdmin ? "Додај фотографију" : "Пошаљи фотографију"}
         </button>
       </div>
 
       {loading ? (
         <div style={{ textAlign: "center", padding: "3rem", color: "#ccc" }}><Icon name="spinner" size={28} /></div>
       ) : items.length === 0 ? (
-        <div className="empty-state"><div className="empty-state-icon">🖼️</div><div className="empty-state-text">Još nema fotografija</div></div>
+        <div className="empty-state"><div className="empty-state-icon">🖼️</div><div className="empty-state-text">Још нема фотографија</div></div>
       ) : (
         <div className="gallery-grid">
           {items.map(item => (
@@ -184,10 +184,10 @@ export default function GalleryView({ isAdmin, user }) {
                 {isAdmin && (
                   <div style={{ display: "flex", gap: ".4rem", marginTop: ".6rem" }}>
                     <button className="btn btn-ghost btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => setEditItem(item)}>
-                      <Icon name="edit" size={11} />Uredi
+                      <Icon name="edit" size={11} />Уреди
                     </button>
                     <button className="btn btn-danger btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleDelete(item.id)}>
-                      <Icon name="trash" size={11} />Obriši
+                      <Icon name="trash" size={11} />Обриши
                     </button>
                   </div>
                 )}
