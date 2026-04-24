@@ -76,6 +76,7 @@ function AddStoryForm({ isAdmin, user, onSaved, onClose }) {
           story_date: date || null,
           image_data: imgData || null, image_type: imgType,
           status: "pending",
+          created_by: user.id,
         });
         if (e) throw e;
       }
