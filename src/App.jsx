@@ -6,70 +6,63 @@ import TreeView from "./components/TreeView";
 import ListView from "./components/ListView";
 import MemberModal from "./components/MemberModal";
 
-// Lazy-load tabove koji se ne otvaraju odmah
-const AdminPanel       = lazy(() => import("./components/AdminPanel"));
-const RequestFormView  = lazy(() => import("./components/RequestFormView"));
-const HistoryView      = lazy(() => import("./components/HistoryView"));
-const GalleryView      = lazy(() => import("./components/GalleryView"));
+const AdminPanel      = lazy(() => import("./components/AdminPanel"));
+const RequestFormView = lazy(() => import("./components/RequestFormView"));
+const HistoryView     = lazy(() => import("./components/HistoryView"));
+const GalleryView     = lazy(() => import("./components/GalleryView"));
 
 const TOPBAR_TITLES = {
-  tree:      "Породично стабло — Додеровићи",
-  istorijat: "Историјат породице Додеровић",
+  tree:      "Породично стабло — Додеровићи и Додери",
+  istorijat: "Историјат породице Додеровић и Додер",
   galerija:  "Галерија",
   list:      "Листа чланова",
   admin:     "Админ панел",
   zahtjev:   "Захтев за унос члана",
+};
 
+const fetchProfile = async (userId) => {
+  try {
+    const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+    return data || null;
+  } catch {
+    return null;
+  }
 };
 
 export default function App() {
-  const [user, setUser]             = useState(null);
-  const [members, setMembers]       = useState([]);
-  const [view, setView]             = useState("tree");
-  const [selected, setSelected]     = useState(null);
-  const [editMember, setEditMember] = useState(null);
-  const [showModal, setShowModal]   = useState(false);
-  const [loading, setLoading]       = useState(true);
+  const [user, setUser]                 = useState(null);
+  const [members, setMembers]           = useState([]);
+  const [view, setView]                 = useState("tree");
+  const [selected, setSelected]         = useState(null);
+  const [editMember, setEditMember]     = useState(null);
+  const [showModal, setShowModal]       = useState(false);
+  const [loading, setLoading]           = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
 
   const isAdmin = user?.profile?.role === "admin";
 
   // ── Auth ──────────────────────────────────────────────────────────────────
+  // Koristimo SAMO onAuthStateChange — on uvijek ispali INITIAL_SESSION
+  // pri page loadu (sa ili bez aktivne sesije), što je jedini pouzdan signal.
   useEffect(() => {
-    let initialDone = false;
-
-    const fetchProfile = async (userId) => {
-      try {
-        const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-        return profile || null;
-      } catch { return null; }
-    };
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        const profile = await fetchProfile(session.user.id);
-        setUser({ ...session.user, profile });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          const profile = await fetchProfile(session.user.id);
+          setUser({ ...session.user, profile });
+        } else {
+          setUser(null);
+          setMembers([]);
+        }
+        // I INITIAL_SESSION i svi kasniji eventi završavaju loading
+        setLoading(false);
       }
-      initialDone = true;
-      setLoading(false);
-    }).catch(() => { initialDone = true; setLoading(false); });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "INITIAL_SESSION") return;
-      if (session) {
-        const profile = await fetchProfile(session.user.id);
-        setUser({ ...session.user, profile });
-        if (!initialDone) { initialDone = true; setLoading(false); }
-      } else {
-        setUser(null);
-        setMembers([]);
-        if (!initialDone) { initialDone = true; setLoading(false); }
-      }
-    });
+    );
 
     return () => subscription.unsubscribe();
   }, []);
 
+  // ── Učitaj podatke kad se user promijeni ──────────────────────────────────
   useEffect(() => {
     if (user) {
       loadMembers();
@@ -79,12 +72,18 @@ export default function App() {
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const loadMembers = async () => {
-    const { data, error } = await supabase.from("members_with_parents").select("*").order("id");
+    const { data, error } = await supabase
+      .from("members_with_parents")
+      .select("*")
+      .order("id");
     if (!error) setMembers(data || []);
   };
 
   const loadPendingCount = async () => {
-    const { count } = await supabase.from("data_requests").select("*", { count: "exact", head: true }).eq("status", "pending");
+    const { count } = await supabase
+      .from("data_requests")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "pending");
     setPendingCount(count || 0);
   };
 
@@ -146,15 +145,12 @@ export default function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setUser(null);
-    setMembers([]);
+    // onAuthStateChange će automatski postaviti user na null
   };
 
   const handleExportPDF = () => {
     const load = () => {
       const { jsPDF } = window.jspdf;
-
-      // ── Transliteracija ćirilice → latinica ─────────────────────────────
       const CYR = {
         'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Ђ':'Dj','Е':'E','Ж':'Z','З':'Z',
         'И':'I','Ј':'J','К':'K','Л':'L','Љ':'Lj','М':'M','Н':'N','Њ':'Nj','О':'O',
@@ -167,27 +163,22 @@ export default function App() {
       };
       const t = (str) => String(str ?? "").replace(/./g, c => CYR[c] ?? c);
 
-      // ── Setup ────────────────────────────────────────────────────────────
       const doc   = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
       const PAD   = 10;
       const LINEH = 6.5;
-
-      // 4 kolone: Ime i prezime | Godiste | Roditelji | Koleno
-      const cols = [
-        { label: "Ime i prezime", x: PAD,          w: 90  },
-        { label: "Godiste",       x: PAD + 90,      w: 30  },
-        { label: "Roditelji",     x: PAD + 90 + 30, w: 90  },
+      const cols  = [
+        { label: "Ime i prezime", x: PAD,               w: 90 },
+        { label: "Godiste",       x: PAD + 90,           w: 30 },
+        { label: "Roditelji",     x: PAD + 90 + 30,      w: 90 },
         { label: "Koleno",        x: PAD + 90 + 30 + 90, w: 25 },
       ];
-
       const GOLD  = [139, 90, 43];
       const INK   = [26, 16, 8];
       const GRAY  = [110, 100, 90];
       const CREAM = [248, 243, 232];
 
-      // ── Naslov ──────────────────────────────────────────────────────────
       doc.setFillColor(26, 16, 8);
       doc.rect(0, 0, pageW, 22, "F");
       doc.setTextColor(232, 184, 90);
@@ -200,8 +191,6 @@ export default function App() {
       doc.text("Poljana · Porodicna arhiva", pageW / 2, 17, { align: "center" });
 
       let y = 28;
-
-      // ── Funkcija za crtanje zaglavlja tabele ─────────────────────────────
       const drawTableHeader = () => {
         doc.setFillColor(220, 200, 160);
         doc.rect(PAD, y, pageW - PAD * 2, 7, "F");
@@ -215,7 +204,6 @@ export default function App() {
         y += 9;
       };
 
-      // ── Sortiraj sve članove po kolenu pa imenu ──────────────────────────
       const sorted = [...members].sort((a, b) => {
         const ga = a.generational_line ?? 999;
         const gb = b.generational_line ?? 999;
@@ -224,79 +212,46 @@ export default function App() {
       });
 
       drawTableHeader();
-
       sorted.forEach((m, i) => {
-        if (y + LINEH > pageH - 12) {
-          doc.addPage();
-          y = 15;
-          drawTableHeader();
-        }
-
-        // Izmjenični red
+        if (y + LINEH > pageH - 12) { doc.addPage(); y = 15; drawTableHeader(); }
         if (i % 2 === 0) {
           doc.setFillColor(...CREAM);
           doc.rect(PAD, y - 4, pageW - PAD * 2, LINEH, "F");
         }
-
-        const roditelji = members
-          .filter(p => (m.parent_ids || []).includes(p.id))
-          .map(p => t(p.first_name))
-          .join(", ") || "—";
-
-        const godine = m.birth_year
-          ? `${m.birth_year}${m.death_year ? ` - ${m.death_year}` : ""}`
-          : "—";
-
-        const koleno = m.generational_line ? `${m.generational_line}.` : "—";
-
-        doc.setFontSize(7.5);
-        doc.setFont(undefined, "bold");
-        doc.setTextColor(...INK);
+        const roditelji = members.filter(p => (m.parent_ids || []).includes(p.id)).map(p => t(p.first_name)).join(", ") || "—";
+        const godine    = m.birth_year ? `${m.birth_year}${m.death_year ? ` - ${m.death_year}` : ""}` : "—";
+        const koleno    = m.generational_line ? `${m.generational_line}.` : "—";
+        doc.setFontSize(7.5); doc.setFont(undefined, "bold"); doc.setTextColor(...INK);
         doc.text(t(`${m.first_name} ${m.last_name}`), cols[0].x + 1, y);
-
-        doc.setFont(undefined, "normal");
-        doc.setTextColor(...GRAY);
-        doc.text(godine,   cols[1].x + 1, y);
+        doc.setFont(undefined, "normal"); doc.setTextColor(...GRAY);
+        doc.text(godine, cols[1].x + 1, y);
         doc.text(roditelji, cols[2].x + 1, y);
-        doc.text(koleno,   cols[3].x + 1, y);
-
+        doc.text(koleno, cols[3].x + 1, y);
         y += LINEH;
       });
 
-      // ── Separator linije između kolona ──────────────────────────────────
-      // (vertikalne linije kroz cijeli dokument - nije moguće retroaktivno,
-      //  ali dodajemo tanke linije na svakoj stranici)
       const totalPages = doc.internal.getNumberOfPages();
       for (let p = 1; p <= totalPages; p++) {
         doc.setPage(p);
-        doc.setDrawColor(...GOLD);
-        doc.setLineWidth(0.1);
-        // vertikalne linije kolona
-        [cols[1].x, cols[2].x, cols[3].x].forEach(x => {
-          doc.line(x, 22, x, pageH - 8);
-        });
-        // footer
-        doc.setFontSize(6);
-        doc.setTextColor(...GRAY);
-        doc.text(
-          `Generisano: ${new Date().toLocaleDateString("sr-Latn")} · Ukupno clanova: ${members.length}`,
-          PAD, pageH - 4
-        );
+        doc.setDrawColor(...GOLD); doc.setLineWidth(0.1);
+        [cols[1].x, cols[2].x, cols[3].x].forEach(x => doc.line(x, 22, x, pageH - 8));
+        doc.setFontSize(6); doc.setTextColor(...GRAY);
+        doc.text(`Generisano: ${new Date().toLocaleDateString("sr-Latn")} · Ukupno clanova: ${members.length}`, PAD, pageH - 4);
         doc.text(`${p} / ${totalPages}`, pageW - PAD, pageH - 4, { align: "right" });
       }
-
       doc.save("Doderovici-porodicno-stablo.pdf");
     };
 
-    if (window.jspdf) {
-      load();
-    } else {
+    if (window.jspdf) { load(); }
+    else {
       const script = document.createElement("script");
       script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
       script.onload = load;
       document.head.appendChild(script);
     }
   };
+
+  // ── Render ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="loading-screen">
@@ -311,22 +266,19 @@ export default function App() {
   const nav = [
     { id: "tree",      icon: "tree",    label: "Породично стабло" },
     { id: "list",      icon: "users",   label: "Листа чланова" },
-        { id: "istorijat", icon: "history", label: "Историја" },
+    { id: "istorijat", icon: "history", label: "Историја" },
     { id: "galerija",  icon: "image",   label: "Галерија" },
     ...(isAdmin
-      ? [{ id: "admin",    icon: "shield",  label: "Админ панел", badge: pendingCount > 0 ? pendingCount : null }]
-      : [{ id: "zahtjev",  icon: "inbox",   label: "Захтјев за унос члана породице" }]
-    )
-
+      ? [{ id: "admin",   icon: "shield", label: "Админ панел", badge: pendingCount > 0 ? pendingCount : null }]
+      : [{ id: "zahtjev", icon: "inbox",  label: "Захтјев за унос члана породице" }]
+    ),
   ];
 
   const displayName = user?.profile?.full_name || user?.email || "Korisnik";
-
-  const openModal = (member = null) => { setEditMember(member); setShowModal(true); };
+  const openModal   = (member = null) => { setEditMember(member); setShowModal(true); };
 
   return (
     <div className="app-layout">
-      {/* ── Sidebar ── */}
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-logo">🌳 Додеровићи и Додери</div>
@@ -354,7 +306,6 @@ export default function App() {
         </div>
       </aside>
 
-      {/* ── Main ── */}
       <div className="main-content">
         <div className="topbar">
           <div className="topbar-title">{TOPBAR_TITLES[view] || ""}</div>
