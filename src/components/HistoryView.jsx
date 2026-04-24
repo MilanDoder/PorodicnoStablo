@@ -165,7 +165,7 @@ export default function HistoryView({ isAdmin, user }) {
   return (
     <div className="gallery-wrap">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-        <p className="gallery-intro" style={{ margin: 0 }}>Историјат и приче породице Додеровић</p>
+        <p className="gallery-intro" style={{ margin: 0 }}>Историјат и приче породице Додеровић и Додер</p>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
           <Icon name="plus" size={13} />{isAdmin ? "Dodaj priču" : "Pošalji priču"}
         </button>
