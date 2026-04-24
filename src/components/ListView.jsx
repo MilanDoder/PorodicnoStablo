@@ -3,8 +3,8 @@ import Icon from "./Icon";
 import MemberTreeModal from "./MemberTreeModal";
 
 export default function ListView({ members, isAdmin, onEdit, onDelete }) {
-  const [q, setQ]           = useState("");
-  const [treeRoot, setTreeRoot] = useState(null); // otvara MemberTreeModal
+  const [q, setQ]               = useState("");
+  const [treeRoot, setTreeRoot] = useState(null);
 
   const filtered = members.filter(m =>
     `${m.first_name} ${m.last_name}`.toLowerCase().includes(q.toLowerCase())
@@ -18,7 +18,7 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
           className="search-input"
           value={q}
           onChange={e => setQ(e.target.value)}
-          placeholder="Pretraži po imenu..."
+          placeholder="Претражи по имену..."
         />
         <span style={{ fontSize: ".7rem", color: "#999" }}>{filtered.length} / {members.length}</span>
       </div>
@@ -26,20 +26,20 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
       <table className="mtable">
         <thead>
           <tr>
-            <th>Ime i prezime</th>
-            <th>Pol</th>
-            <th>Koleno</th>
-            <th>Godišta</th>
-            <th>Roditelji</th>
-            <th>Djeca</th>
-            <th>Stablo</th>
-            {isAdmin && <th>Akcije</th>}
+            <th>Име и презиме</th>
+            <th>Пол</th>
+            <th>Кољено</th>
+            <th>Годишта</th>
+            <th>Родитељи</th>
+            <th>Дјеца</th>
+            <th>Стабло</th>
+            {isAdmin && <th>Акције</th>}
           </tr>
         </thead>
         <tbody>
           {filtered.map(m => {
-            const parents  = members.filter(p => (m.parent_ids || []).includes(p.id));
-            const children = members.filter(c => (c.parent_ids || []).includes(m.id));
+            const parents     = members.filter(p => (m.parent_ids || []).includes(p.id));
+            const children    = members.filter(c => (c.parent_ids || []).includes(m.id));
             const hasChildren = children.length > 0;
 
             return (
@@ -52,7 +52,7 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
                 </td>
                 <td>
                   <span className={`gbadge ${m.gender}`}>
-                    {m.gender === "male" ? "👨 Muški" : "👩 Ženski"}
+                    {m.gender === "male" ? "👨 Мушки" : "👩 Женски"}
                   </span>
                 </td>
                 <td style={{ color: "var(--gold-dark)", fontWeight: 600 }}>
@@ -70,14 +70,13 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
                   {hasChildren ? children.length : <span style={{ color: "#ccc" }}>0</span>}
                 </td>
 
-                {/* ── Stablo dugme ── */}
                 <td>
                   <button
                     className="btn btn-ghost btn-sm"
                     style={!hasChildren ? { opacity: .3, cursor: "not-allowed", pointerEvents: "none" } : {}}
                     disabled={!hasChildren}
                     onClick={() => setTreeRoot(m)}
-                    title={hasChildren ? `Prikaži stablo: ${m.first_name} ${m.last_name}` : "Nema potomaka"}
+                    title={hasChildren ? `Прикажи стабло: ${m.first_name} ${m.last_name}` : "Нема потомака"}
                   >
                     🌳
                   </button>
@@ -87,11 +86,11 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
                   <td>
                     <div style={{ display: "flex", gap: ".35rem" }}>
                       <button className="btn btn-ghost btn-sm" onClick={() => onEdit(m)}>
-                        <Icon name="edit" size={11} />Uredi
+                        <Icon name="edit" size={11} />Уреди
                       </button>
                       <button
                         className="btn btn-danger btn-sm"
-                        onClick={() => { if (window.confirm(`Obrisati ${m.first_name}?`)) onDelete(m.id); }}
+                        onClick={() => { if (window.confirm(`Обрисати ${m.first_name}?`)) onDelete(m.id); }}
                       >
                         <Icon name="trash" size={11} />
                       </button>
@@ -104,7 +103,6 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
         </tbody>
       </table>
 
-      {/* ── Popup stablo ── */}
       {treeRoot && (
         <MemberTreeModal
           root={treeRoot}
