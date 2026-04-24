@@ -3,8 +3,7 @@ import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
 import ParentPicker from "./ParentPicker";
 
-
-const STATUS_LABEL = { pending: "Na čekanju", approved: "Prihvaćen", rejected: "Odbijen" };
+const STATUS_LABEL = { pending: "На чекању", approved: "Прихваћен", rejected: "Одбијен" };
 const STATUS_CLASS = { pending: "status-pending", approved: "status-approved", rejected: "status-rejected" };
 const STATUS_ICON  = { pending: "clock", approved: "check", rejected: "x" };
 
@@ -52,18 +51,13 @@ export default function RequestFormView({ user, members }) {
         status:     "pending",
       };
       const { error } = await supabase.from("data_requests").insert(payload);
-      if (error) {
-        console.error("Insert error:", error);
-        alert("Greška pri slanju: " + error.message);
-        return;
-      }
+      if (error) { alert("Грешка при слању: " + error.message); return; }
       setSuccess(true);
       setF(EMPTY_FORM);
       setTimeout(() => setSuccess(false), 5000);
       loadMyRequests();
     } catch (e) {
-      console.error("Unexpected error:", e);
-      alert("Neočekivana greška. Pokušajte ponovo.");
+      alert("Неочекивана грешка. Покушајте поново.");
     } finally {
       setSaving(false);
     }
@@ -71,44 +65,44 @@ export default function RequestFormView({ user, members }) {
 
   return (
     <div className="req-form-wrap">
-      {/* ── FORMA ── */}
+      {/* ── ФОРМА ── */}
       <div className="req-form-card" style={{ marginBottom: "2rem" }}>
-        <div className="req-form-title">Pošaljite zahtjev za unos člana</div>
+        <div className="req-form-title">Пошаљите захтјев за унос члана</div>
         <p className="req-form-desc">
-          Ukoliko znate podatke o članu porodice koji nije evidentiran, popunite formu ispod.
-          Administrator će pregledati vaš zahtjev i odlučiti da li se unese u stablo.
+          Уколико знате податке о члану породице који није евидентиран, попуните форму испод.
+          Администратор ће прегледати ваш захтјев и одлучити да ли се унесе у стабло.
         </p>
         {success && (
-          <div className="req-success">✓ Zahtjev je uspješno poslat! Administrator će ga pregledati.</div>
+          <div className="req-success">✓ Захтјев је успјешно послат! Администратор ће га прегледати.</div>
         )}
         <div className="form-grid">
           <div className="form-field">
-            <label className="form-label">Ime *</label>
-            <input className="form-input" value={f.first_name} onChange={e => set("first_name", e.target.value)} placeholder="npr. Марко" />
+            <label className="form-label">Име *</label>
+            <input className="form-input" value={f.first_name} onChange={e => set("first_name", e.target.value)} placeholder="нпр. Марко" />
           </div>
           <div className="form-field">
-            <label className="form-label">Prezime</label>
+            <label className="form-label">Презиме</label>
             <input className="form-input" value={f.last_name} onChange={e => set("last_name", e.target.value)} />
           </div>
           <div className="form-field">
-            <label className="form-label">Pol</label>
+            <label className="form-label">Пол</label>
             <select className="form-select" value={f.gender} onChange={e => set("gender", e.target.value)}>
-              <option value="male">Muški</option>
-              <option value="female">Ženski</option>
+              <option value="male">Мушки</option>
+              <option value="female">Женски</option>
             </select>
           </div>
           <div className="form-field">
-            <label className="form-label">God. rođenja</label>
-            <input className="form-input" type="number" value={f.birth_year} onChange={e => set("birth_year", e.target.value)} placeholder="npr. 1955" />
+            <label className="form-label">Год. рођења</label>
+            <input className="form-input" type="number" value={f.birth_year} onChange={e => set("birth_year", e.target.value)} placeholder="нпр. 1955" />
           </div>
           <div className="form-field">
-            <label className="form-label">God. smrti</label>
-            <input className="form-input" type="number" value={f.death_year} onChange={e => set("death_year", e.target.value)} placeholder="prazno ako je živ/a" />
+            <label className="form-label">Год. смрти</label>
+            <input className="form-input" type="number" value={f.death_year} onChange={e => set("death_year", e.target.value)} placeholder="празно ако је жив/а" />
           </div>
           <div className="form-field">
-            <label className="form-label">Supružnik (iz stabla)</label>
+            <label className="form-label">Супружник (из стабла)</label>
             <select className="form-select" value={f.spouse_id} onChange={e => set("spouse_id", e.target.value)}>
-              <option value="">— bez supružnika —</option>
+              <option value="">— без супружника —</option>
               {members.map(m => {
                 const otac = members.find(p => (m.parent_ids || []).includes(p.id) && p.gender === "male");
                 const godina = m.birth_year ? ` · ${m.birth_year}.` : "";
@@ -122,7 +116,7 @@ export default function RequestFormView({ user, members }) {
             </select>
           </div>
           <div className="form-field full">
-            <label className="form-label">Roditelji (iz stabla)</label>
+            <label className="form-label">Родитељи (из стабла)</label>
             <ParentPicker
               members={members}
               selectedIds={f.parent_ids || []}
@@ -130,26 +124,26 @@ export default function RequestFormView({ user, members }) {
             />
           </div>
           <div className="form-field full">
-            <label className="form-label">Napomena / Izvor podataka</label>
+            <label className="form-label">Напомена / Извор података</label>
             <textarea
               className="form-textarea"
               value={f.notes}
               onChange={e => set("notes", e.target.value)}
-              placeholder="Opisite vezu ili izvor ovih podataka..."
+              placeholder="Опишите везу или извор ових података..."
             />
           </div>
         </div>
         <div style={{ marginTop: "1rem", display: "flex", justifyContent: "flex-end" }}>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={saving || !f.first_name}>
             {saving
-              ? <><Icon name="spinner" size={14} />Slanje...</>
-              : <><Icon name="send" size={14} />Pošalji zahtjev</>}
+              ? <><Icon name="spinner" size={14} />Слање...</>
+              : <><Icon name="send" size={14} />Пошаљи захтјев</>}
           </button>
         </div>
       </div>
 
-      {/* ── MOJI ZAHTJEVI ── */}
-      <div className="section-title">Moji zahtjevi</div>
+      {/* ── МОЈИ ЗАХТЈЕВИ ── */}
+      <div className="section-title">Моји захтјеви</div>
       {loadingReqs ? (
         <div style={{ textAlign: "center", padding: "2rem", color: "#aaa" }}>
           <Icon name="spinner" size={20} />
@@ -157,7 +151,7 @@ export default function RequestFormView({ user, members }) {
       ) : myRequests.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">📭</div>
-          <div className="empty-state-text">Još niste poslali nijedan zahtjev.</div>
+          <div className="empty-state-text">Још нисте послали ниједан захтјев.</div>
         </div>
       ) : (
         myRequests.map(req => (
@@ -171,23 +165,23 @@ export default function RequestFormView({ user, members }) {
             </div>
             <div className="req-card-body">
               <div className="req-field">
-                <div className="req-field-key">Pol</div>
-                {req.gender === "male" ? "Muški" : "Ženski"}
+                <div className="req-field-key">Пол</div>
+                {req.gender === "male" ? "Мушки" : "Женски"}
               </div>
               {req.birth_year && (
                 <div className="req-field">
-                  <div className="req-field-key">God. rođenja</div>
+                  <div className="req-field-key">Год. рођења</div>
                   {req.birth_year}.
                 </div>
               )}
               <div className="req-field">
-                <div className="req-field-key">Poslato</div>
+                <div className="req-field-key">Послато</div>
                 {new Date(req.created_at).toLocaleDateString("sr-Latn")}
               </div>
             </div>
             {req.admin_note && (
               <div style={{ padding: ".5rem 1rem", fontSize: ".72rem", color: "#666", borderTop: "1px solid rgba(200,150,62,.08)" }}>
-                <span style={{ color: "var(--gold-dark)", fontWeight: 600 }}>Admin komentar:</span> {req.admin_note}
+                <span style={{ color: "var(--gold-dark)", fontWeight: 600 }}>Админ коментар:</span> {req.admin_note}
               </div>
             )}
           </div>

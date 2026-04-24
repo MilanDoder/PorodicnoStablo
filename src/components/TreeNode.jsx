@@ -3,11 +3,6 @@ import Icon from "./Icon";
 const NODE_WIDTH = 110;
 const NODE_GAP   = 20;
 
-/**
- * Dete se prikazuje u stablu samo ako ima bar jednog muškog roditelja
- * koji postoji u members listi. Ako su svi roditelji ženskog pola,
- * dete se sakriva iz stabla (ali ostaje vidljivo u DetailPanel-u).
- */
 function hasVisibleMaleParent(child, members) {
   const parentIds = child.parent_ids || [];
   return parentIds.some(pid => {
@@ -18,19 +13,12 @@ function hasVisibleMaleParent(child, members) {
 
 function getChildren(member, members) {
   return members.filter(m => {
-    // Mora biti dijete ovog člana
     if (!(m.parent_ids || []).includes(member.id)) return false;
-
-    // Izbjegni duplikate — ako dijete ima dva roditelja u stablu,
-    // prikazuj ga samo pod onim s manjim id-em
     const otherParent = (m.parent_ids || []).find(
       pid => pid !== member.id && members.find(x => x.id === pid)
     );
     if (otherParent && otherParent < member.id) return false;
-
-    // Sakrij dijete ako nema ni jednog muškog roditelja u stablu
     if (!hasVisibleMaleParent(m, members)) return false;
-
     return true;
   });
 }
@@ -48,13 +36,6 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
   const children = getChildren(member, members);
   const spouse   = members.find(m => m.id === member.spouse_id);
 
-  // Broj sakrivene djece (samo ženske linije) — prikazujemo info na čvoru
-  const hiddenChildrenCount = members.filter(m => {
-    if (!(m.parent_ids || []).includes(member.id)) return false;
-    if (!hasVisibleMaleParent(m, members)) return true;
-    return false;
-  }).length;
-
   const renderNode = (m, showAddChild = false) => {
     const hidden = members.filter(c => {
       if (!(c.parent_ids || []).includes(m.id)) return false;
@@ -67,19 +48,18 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
         className={`member-node ${m.gender}${selected?.id === m.id ? " sel" : ""}${m.featured ? " featured" : ""}`}
         onClick={() => onSelect(m)}
       >
-        {m.featured && <span className="node-featured-badge" title="Istaknuti član">★</span>}
+        {m.featured && <span className="node-featured-badge" title="Истакнути члан">★</span>}
         <div className="node-name">{m.first_name}<br />{m.last_name}</div>
         {m.birth_year && (
           <div className="node-note">{m.birth_year}{m.death_year ? `–${m.death_year}` : ""}</div>
         )}
         {m.generational_line && (
           <div className="node-note" style={{ color: "var(--gold-dark)", fontWeight: 600 }}>
-            {m.generational_line}. koleno
+            {m.generational_line}. кољено
           </div>
         )}
-        {/* Indikator sakrivene djece */}
         {hidden > 0 && (
-          <div className="node-hidden-children" title="Kliknite za detalje">
+          <div className="node-hidden-children" title="Кликните за детаље">
             +{hidden} ♀
           </div>
         )}

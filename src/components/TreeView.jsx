@@ -11,11 +11,10 @@ const DEFAULT_SCALE = 0.85;
 export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDelete, selected, onSelect }) {
   const [addChildOf, setAddChildOf] = useState(null);
   const [scale, setScale]           = useState(DEFAULT_SCALE);
-  const canvasRef  = useRef(null);
-  const innerRef   = useRef(null);
-  const mmCanvasRef = useRef(null); // mini-map canvas
+  const canvasRef   = useRef(null);
+  const innerRef    = useRef(null);
+  const mmCanvasRef = useRef(null);
 
-  // ── Drag-to-pan (mouse) ────────────────────────────────────────────────────
   const dragging  = useRef(false);
   const startPos  = useRef({ x: 0, y: 0 });
   const scrollPos = useRef({ left: 0, top: 0 });
@@ -37,7 +36,6 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
     if (canvasRef.current) canvasRef.current.style.cursor = "grab";
   };
 
-  // ── Touch drag + pinch zoom ────────────────────────────────────────────────
   const lastTouches = useRef(null);
   const lastDist    = useRef(null);
 
@@ -77,53 +75,39 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
     }
   };
 
-  // ── Scroll to member & highlight ──────────────────────────────────────────
   const scrollToMember = useCallback((memberId) => {
     if (!canvasRef.current || !innerRef.current) return;
     const el = innerRef.current.querySelector(`[data-member-id="${memberId}"]`);
     if (!el) return;
-    const canvas   = canvasRef.current;
-    const inner    = innerRef.current;
+    const canvas    = canvasRef.current;
+    const inner     = innerRef.current;
     const innerRect = inner.getBoundingClientRect();
     const elRect    = el.getBoundingClientRect();
-
-    // Pozicija čvora unutar inner diva (pre skaliranja)
-    const elLeft = (elRect.left - innerRect.left) / scale;
-    const elTop  = (elRect.top  - innerRect.top)  / scale;
-    const elW    = elRect.width  / scale;
-    const elH    = elRect.height / scale;
-
-    // Centar čvora u skaliranim koordinatama
+    const elLeft    = (elRect.left - innerRect.left) / scale;
+    const elTop     = (elRect.top  - innerRect.top)  / scale;
+    const elW       = elRect.width  / scale;
+    const elH       = elRect.height / scale;
     const targetLeft = (elLeft + elW / 2) * scale - canvas.clientWidth  / 2;
     const targetTop  = (elTop  + elH / 2) * scale - canvas.clientHeight / 2;
-
     canvas.scrollTo({ left: targetLeft, top: targetTop, behavior: "smooth" });
-
-    // Flash efekat
     el.classList.add("node-flash");
     setTimeout(() => el.classList.remove("node-flash"), 1200);
   }, [scale]);
 
-  // ── Mini-mapa ──────────────────────────────────────────────────────────────
   const drawMiniMap = useCallback(() => {
     const canvas = mmCanvasRef.current;
     const main   = canvasRef.current;
     const inner  = innerRef.current;
     if (!canvas || !main || !inner) return;
-
     const ctx    = canvas.getContext("2d");
     const W      = canvas.width;
     const H      = canvas.height;
     ctx.clearRect(0, 0, W, H);
-
     const totalW = inner.scrollWidth;
     const totalH = inner.scrollHeight;
     if (!totalW || !totalH) return;
-
     const rx = W / totalW;
     const ry = H / totalH;
-
-    // Crtaj čvorove kao tačkice
     members.forEach(m => {
       const el = inner.querySelector(`[data-member-id="${m.id}"]`);
       if (!el) return;
@@ -134,8 +118,6 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
       ctx.fillStyle = m.gender === "male" ? "#4a7fa8" : "#b06080";
       ctx.fillRect(x * scale, y * scale, Math.max(3, 8 * rx * scale), Math.max(2, 5 * ry * scale));
     });
-
-    // Viewport okvir
     const vx = main.scrollLeft * rx;
     const vy = main.scrollTop  * ry;
     const vw = main.clientWidth  * rx;
@@ -156,12 +138,10 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
   }, [drawMiniMap]);
 
   useEffect(() => {
-    // Redraw mini-mapa kad se scale ili members promijene
     const t = setTimeout(drawMiniMap, 150);
     return () => clearTimeout(t);
   }, [drawMiniMap, scale, members]);
 
-  // Klik na mini-mapu → skroluj
   const onMiniMapClick = (e) => {
     const canvas = mmCanvasRef.current;
     const main   = canvasRef.current;
@@ -174,7 +154,6 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
     main.scrollTop  = py * inner.scrollHeight - main.clientHeight / 2;
   };
 
-  // ── Tree roots ─────────────────────────────────────────────────────────────
   const roots = members.filter(
     m => !(m.parent_ids || []).length || !(m.parent_ids || []).some(pid => members.find(x => x.id === pid))
   );
@@ -194,7 +173,6 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
 
   return (
     <div className="tree-wrap">
-      {/* ── Canvas ── */}
       <div
         className="tree-canvas"
         ref={canvasRef}
@@ -216,7 +194,7 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
             {primaryRoots.map(root => (
               <div key={root.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px" }}>
                 <div style={{ fontSize: ".6rem", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--gold-dark)", marginBottom: "6px" }}>
-                  Grana: {root.first_name} {root.last_name}
+                  Грана: {root.first_name} {root.last_name}
                 </div>
                 <TreeNode
                   member={root}
@@ -233,40 +211,37 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
           {isAdmin && (
             <div style={{ textAlign: "center", marginTop: "2rem" }}>
               <button className="btn btn-ghost" onClick={() => onEdit(null)}>
-                <Icon name="plus" size={14} />Dodaj novog člana
+                <Icon name="plus" size={14} />Додај новог члана
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Zoom kontrole ── */}
       <div className="tree-controls">
-        <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.min(MAX_SCALE, s + 0.1))} title="Uvećaj">
+        <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.min(MAX_SCALE, s + 0.1))} title="Увећај">
           <Icon name="zoomin" size={16} />
         </button>
-        <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.max(MIN_SCALE, s - 0.1))} title="Umanji">
+        <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.max(MIN_SCALE, s - 0.1))} title="Умањи">
           <Icon name="zoomout" size={16} />
         </button>
-        <button className="tree-ctrl-btn" onClick={() => setScale(DEFAULT_SCALE)} title="Resetuj">
+        <button className="tree-ctrl-btn" onClick={() => setScale(DEFAULT_SCALE)} title="Ресетуј">
           <Icon name="reset" size={16} />
         </button>
       </div>
 
-      {/* ── Mini-mapa ── */}
       <div className="minimap-wrap">
-        <div className="minimap-label">Mapa stabla</div>
+        <div className="minimap-label">Мапа стабла</div>
         <canvas
           ref={mmCanvasRef}
           className="minimap-canvas"
           width={180}
           height={110}
           onClick={onMiniMapClick}
-          title="Kliknite za navigaciju"
+          title="Кликните за навигацију"
         />
       </div>
 
-      {/* ── Detail panel ── */}
       <DetailPanel
         member={selected}
         members={members}

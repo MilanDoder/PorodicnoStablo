@@ -1,9 +1,6 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import Icon from "./Icon";
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-/** Rekurzivno skupi sve potomke datog člana (uključujući njega). */
 function collectDescendants(rootId, allMembers) {
   const result = new Set();
   const queue  = [rootId];
@@ -19,7 +16,6 @@ function collectDescendants(rootId, allMembers) {
   return result;
 }
 
-/** Vraća djecu člana u kontekstu podskupa članova. */
 function getChildren(member, subset) {
   return subset.filter(m => {
     if (!(m.parent_ids || []).includes(member.id)) return false;
@@ -43,8 +39,6 @@ function subtreeWidth(member, subset) {
   return Math.max(selfWidth, childW);
 }
 
-// ── Mini TreeNode (bez admin akcija) ──────────────────────────────────────────
-
 function MiniNode({ member, subset, selected, onSelect }) {
   const children = getChildren(member, subset);
   const spouse   = subset.find(m => m.id === member.spouse_id);
@@ -65,7 +59,7 @@ function MiniNode({ member, subset, selected, onSelect }) {
       )}
       {m.generational_line && (
         <div className="node-note" style={{ color: "var(--gold-dark)", fontWeight: 600 }}>
-          {m.generational_line}. koleno
+          {m.generational_line}. кољено
         </div>
       )}
     </div>
@@ -113,26 +107,21 @@ function MiniNode({ member, subset, selected, onSelect }) {
   );
 }
 
-// ── Glavni modal ───────────────────────────────────────────────────────────────
-
 export default function MemberTreeModal({ root, allMembers, onClose }) {
-  const [scale, setScale]     = useState(0.85);
+  const [scale, setScale]       = useState(0.85);
   const [selected, setSelected] = useState(null);
   const canvasRef = useRef(null);
   const dragging  = useRef(false);
   const startPos  = useRef({ x: 0, y: 0 });
   const scrollPos = useRef({ left: 0, top: 0 });
 
-  // Podskup članova — root + svi potomci + supružnici potomaka
   const descIds = collectDescendants(root.id, allMembers);
-  // Dodaj i supružnike koji nisu potomci (da se prikažu uz partnera)
   const subsetIds = new Set(descIds);
   allMembers.forEach(m => {
     if (descIds.has(m.id) && m.spouse_id) subsetIds.add(m.spouse_id);
   });
   const subset = allMembers.filter(m => subsetIds.has(m.id));
 
-  // Drag to pan
   const onMouseDown = (e) => {
     if (e.button !== 0) return;
     dragging.current = true;
@@ -150,7 +139,6 @@ export default function MemberTreeModal({ root, allMembers, onClose }) {
     if (canvasRef.current) canvasRef.current.style.cursor = "grab";
   };
 
-  // Touch
   const lastTouch = useRef(null);
   const lastDist  = useRef(null);
   const onTouchStart = (e) => {
@@ -175,14 +163,11 @@ export default function MemberTreeModal({ root, allMembers, onClose }) {
     }
   };
 
-  const children = getChildren(root, subset);
-  const totalDesc = descIds.size - 1; // bez roota
+  const totalDesc = descIds.size - 1;
 
   return (
     <div className="mtm-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="mtm-modal">
-
-        {/* ── Header ── */}
         <div className="mtm-header">
           <div>
             <div className="mtm-title">
@@ -190,8 +175,8 @@ export default function MemberTreeModal({ root, allMembers, onClose }) {
               Породично стабло: {root.first_name} {root.last_name}
             </div>
             <div className="mtm-sub">
-              {root.generational_line ? `${root.generational_line}. koleno · ` : ""}
-              {root.birth_year || "?"}{root.death_year ? `–${root.death_year}` : ""} · {totalDesc} potomaka
+              {root.generational_line ? `${root.generational_line}. кољено · ` : ""}
+              {root.birth_year || "?"}{root.death_year ? `–${root.death_year}` : ""} · {totalDesc} потомака
             </div>
           </div>
           <button className="mtm-close" onClick={onClose}>
@@ -199,7 +184,6 @@ export default function MemberTreeModal({ root, allMembers, onClose }) {
           </button>
         </div>
 
-        {/* ── Canvas ── */}
         <div
           className="mtm-canvas"
           ref={canvasRef}
@@ -213,33 +197,25 @@ export default function MemberTreeModal({ root, allMembers, onClose }) {
           onTouchEnd={() => { lastTouch.current = null; lastDist.current = null; }}
         >
           <div className="mtm-inner" style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}>
-            <MiniNode
-              member={root}
-              subset={subset}
-              selected={selected}
-              onSelect={setSelected}
-            />
+            <MiniNode member={root} subset={subset} selected={selected} onSelect={setSelected} />
           </div>
         </div>
 
-        {/* ── Zoom kontrole ── */}
         <div className="mtm-controls">
-          <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.min(2.5, s + 0.1))}><Icon name="zoomin"  size={15} /></button>
-          <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.max(0.2, s - 0.1))}><Icon name="zoomout" size={15} /></button>
-          <button className="tree-ctrl-btn" onClick={() => setScale(0.85)}><Icon name="reset" size={15} /></button>
+          <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.min(2.5, s + 0.1))} title="Увећај"><Icon name="zoomin"  size={15} /></button>
+          <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.max(0.2, s - 0.1))} title="Умањи"><Icon name="zoomout" size={15} /></button>
+          <button className="tree-ctrl-btn" onClick={() => setScale(0.85)} title="Ресетуј"><Icon name="reset" size={15} /></button>
         </div>
 
-        {/* ── Mini info panel za selektovanog ── */}
         {selected && (
           <div className="mtm-info">
             <span>{selected.gender === "male" ? "👨" : "👩"}</span>
             <strong>{selected.first_name} {selected.last_name}</strong>
             {selected.birth_year && <span style={{ color: "#999" }}>{selected.birth_year}{selected.death_year ? `–${selected.death_year}` : ""}</span>}
-            {selected.generational_line && <span style={{ color: "var(--gold-dark)" }}>{selected.generational_line}. koleno</span>}
+            {selected.generational_line && <span style={{ color: "var(--gold-dark)" }}>{selected.generational_line}. кољено</span>}
             <button className="mtm-info-close" onClick={() => setSelected(null)}><Icon name="close" size={12} /></button>
           </div>
         )}
-
       </div>
     </div>
   );

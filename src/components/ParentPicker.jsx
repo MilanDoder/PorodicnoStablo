@@ -21,16 +21,11 @@ export default function ParentPicker({ members, selectedIds = [], onChange, excl
 
   const selectedMember = members.find(m => selectedIds.includes(m.id));
 
-  const select = (m) => {
-    onChange([m.id]);
-    setQ("");
-  };
-
-  const clear = () => onChange([]);
+  const select = (m) => { onChange([m.id]); setQ(""); };
+  const clear  = () => onChange([]);
 
   return (
     <div className="pp-wrap">
-      {/* Odabrani roditelj */}
       {selectedMember ? (
         <div className="pp-tags">
           <span className="pp-tag">
@@ -41,22 +36,20 @@ export default function ParentPicker({ members, selectedIds = [], onChange, excl
         </div>
       ) : null}
 
-      {/* Pretraga */}
       <div className="pp-search-wrap">
         <Icon name="search" size={13} />
         <input
           className="pp-search"
           value={q}
           onChange={e => setQ(e.target.value)}
-          placeholder={selectedMember ? "Promijeni roditelja..." : "Pretraži po imenu..."}
+          placeholder={selectedMember ? "Промијени родитеља..." : "Претражи по имену..."}
         />
         {q && <button className="pp-clear" onClick={() => setQ("")}>×</button>}
       </div>
 
-      {/* Lista — prikazuje se uvijek ili samo pri pretrazi */}
       <div className="pp-list">
         {sorted.length === 0 && (
-          <div className="pp-empty">Nema rezultata</div>
+          <div className="pp-empty">Нема резултата</div>
         )}
         {sorted.map(m => {
           const isSel = selectedIds.includes(m.id);
@@ -69,11 +62,11 @@ export default function ParentPicker({ members, selectedIds = [], onChange, excl
               <div className="pp-item-check">{isSel ? "✓" : ""}</div>
               <div className="pp-item-info">
                 <div className="pp-item-name">
-                  {m.first_name} {m.last_name}
+                  {m.gender === "male" ? "👨" : "👩"} {m.first_name} {m.last_name}
                 </div>
                 <div className="pp-item-meta">
                   {m.generational_line && (
-                    <span className="pp-meta-koleno">{m.generational_line}. koleno</span>
+                    <span className="pp-meta-koleno">{m.generational_line}. кољено</span>
                   )}
                   {m.birth_year && (
                     <span className="pp-meta-year">
@@ -88,7 +81,7 @@ export default function ParentPicker({ members, selectedIds = [], onChange, excl
       </div>
 
       {!selectedMember && (
-        <div className="pp-count">Nije odabran roditelj</div>
+        <div className="pp-count">Није одабран родитељ</div>
       )}
     </div>
   );
