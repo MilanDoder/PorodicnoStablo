@@ -20,6 +20,7 @@ body { font-family: 'Josefin Sans', sans-serif; background: var(--cream); color:
 .login-card::before { top: 12px; left: 12px; border-width: 2px 0 0 2px; }
 .login-card::after  { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; }
 .login-logo { text-align: center; margin-bottom: 1rem; }
+.login-grb { width: 72px; height: 72px; object-fit: contain; opacity: .82; filter: drop-shadow(0 2px 8px rgba(0,0,0,.45)); margin-bottom: .3rem; }
 .login-above { font-family: 'Cormorant Garamond', serif; font-size: 3.5rem; font-weight: 300; color: rgba(200,150,62,.55); letter-spacing: .08em; text-align: center; animation: fadeUp .5s ease both; user-select: none; }
 .login-below { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 300; color: rgba(200,150,62,.3); letter-spacing: .12em; text-align: center; animation: fadeUp .7s ease both; user-select: none; }
 
@@ -42,7 +43,8 @@ body { font-family: 'Josefin Sans', sans-serif; background: var(--cream); color:
 .app-layout { display: flex; height: 100vh; overflow: hidden; }
 .sidebar { width: 220px; flex-shrink: 0; background: #1a1008; display: flex; flex-direction: column; border-right: 1px solid rgba(200,150,62,.2); }
 .sidebar-header { padding: 1.25rem 1rem .8rem; border-bottom: 1px solid rgba(200,150,62,.1); }
-.sidebar-logo { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; color: var(--gold-light); }
+.sidebar-logo { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; color: var(--gold-light); display: flex; align-items: center; gap: .45rem; }
+.sidebar-grb { width: 26px; height: 26px; object-fit: contain; opacity: .78; filter: drop-shadow(0 1px 4px rgba(0,0,0,.5)); flex-shrink: 0; }
 .sidebar-sub { font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; color: rgba(200,150,62,.45); margin-top: .15rem; }
 .sidebar-user { padding: .8rem 1rem; display: flex; align-items: center; gap: .6rem; border-bottom: 1px solid rgba(200,150,62,.1); }
 .sidebar-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--gold-dark), var(--gold)); display: flex; align-items: center; justify-content: center; color: white; font-size: .75rem; flex-shrink: 0; }
