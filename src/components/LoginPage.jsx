@@ -26,7 +26,14 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <div className="login-page">
-      <div className="login-wm">Додеровићи</div>
+      <svg className="login-wm-top" viewBox="0 0 800 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <path id="arcTop" d="M 20,100 Q 400,10 780,100" />
+        </defs>
+        <text fontFamily="Cormorant Garamond, serif" fontSize="72" fontWeight="700" fill="rgba(200,150,62,0.15)" letterSpacing="4">
+          <textPath href="#arcTop" startOffset="50%" textAnchor="middle">Додеровићи</textPath>
+        </text>
+      </svg>
       <div className="login-card">
         <div className="login-logo">
           <img src="/image/grb.png" alt="Грб породице" className="login-grb" />
@@ -67,7 +74,14 @@ export default function LoginPage({ onLogin }) {
           {loading ? <><Icon name="spinner" size={16} />Prijava...</> : "Prijavite se →"}
         </button>
       </div>
-      <div className="login-wm">Додери</div>
+      <svg className="login-wm-bot" viewBox="0 0 800 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <path id="arcBot" d="M 20,20 Q 400,110 780,20" />
+        </defs>
+        <text fontFamily="Cormorant Garamond, serif" fontSize="72" fontWeight="700" fill="rgba(200,150,62,0.15)" letterSpacing="4">
+          <textPath href="#arcBot" startOffset="50%" textAnchor="middle">Додери</textPath>
+        </text>
+      </svg>
     </div>
   );
 }
