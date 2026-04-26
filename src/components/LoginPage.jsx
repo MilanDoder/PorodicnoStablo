@@ -30,7 +30,7 @@ export default function LoginPage({ onLogin }) {
         <defs>
           <path id="arcTop" d="M 0,180 Q 500,20 1000,180" />
         </defs>
-        <text fontFamily="Cormorant Garamond, serif" fontSize="200" fontWeight="700" fill="rgba(200,150,62,0.15)" letterSpacing="2">
+        <text fontFamily="Cormorant Garamond, serif" fontSize="200" fontWeight="700" fill="rgba(200,150,62,0.08)" letterSpacing="2">
           <textPath href="#arcTop" startOffset="50%" textAnchor="middle">Додеровићи</textPath>
         </text>
       </svg>
@@ -78,7 +78,7 @@ export default function LoginPage({ onLogin }) {
         <defs>
           <path id="arcBot" d="M 0,40 Q 500,200 1000,40" />
         </defs>
-        <text fontFamily="Cormorant Garamond, serif" fontSize="200" fontWeight="700" fill="rgba(200,150,62,0.15)" letterSpacing="2">
+        <text fontFamily="Cormorant Garamond, serif" fontSize="200" fontWeight="700" fill="rgba(200,150,62,0.08)" letterSpacing="2">
           <textPath href="#arcBot" startOffset="50%" textAnchor="middle">Додери</textPath>
         </text>
       </svg>
