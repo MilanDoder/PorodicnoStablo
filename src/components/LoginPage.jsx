@@ -26,18 +26,6 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <div className="login-page">
-      <svg className="login-bg-svg" viewBox="0 0 1200 1000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <path id="arcTop" d="M 0,220 Q 600,40 1200,220" />
-          <path id="arcBot" d="M 0,780 Q 600,960 1200,780" />
-        </defs>
-        <text fontFamily="Cormorant Garamond, serif" fontSize="130" fontWeight="700" fill="rgba(200,150,62,0.13)" letterSpacing="4">
-          <textPath href="#arcTop" startOffset="50%" textAnchor="middle">Додеровићи</textPath>
-        </text>
-        <text fontFamily="Cormorant Garamond, serif" fontSize="130" fontWeight="700" fill="rgba(200,150,62,0.13)" letterSpacing="4">
-          <textPath href="#arcBot" startOffset="50%" textAnchor="middle">Додери</textPath>
-        </text>
-      </svg>
       <div className="login-card">
         <div className="login-logo">
           <img src="/image/grb.png" alt="Грб породице" className="login-grb" />
