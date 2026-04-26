@@ -26,6 +26,7 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <div className="login-page">
+      <div className="login-wm">Додеровићи</div>
       <div className="login-card">
         <div className="login-logo">
           <img src="/image/grb.png" alt="Грб породице" className="login-grb" />
@@ -66,6 +67,7 @@ export default function LoginPage({ onLogin }) {
           {loading ? <><Icon name="spinner" size={16} />Prijava...</> : "Prijavite se →"}
         </button>
       </div>
+      <div className="login-wm">Додери</div>
     </div>
   );
 }
