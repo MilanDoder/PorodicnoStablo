@@ -26,12 +26,12 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <div className="login-page">
-      <div className="login-bg-text">Додеровићи</div>
+      <div className="login-bg-text">Додеровићи и Додери</div>
       <div className="login-card">
         <div className="login-logo">
           <img src="/image/grb.png" alt="" className="login-grb" />
-          <div className="login-title">Додеровићи</div>
-          <div className="login-family">Пољана</div>
+          <div className="login-title">Додеровићи и Додери</div>
+          <div className="login-family"></div>
           <div className="login-subtitle">Систем за управљање родословом</div>
         </div>
         <div className="divider" />
