@@ -310,7 +310,7 @@ useEffect(() => {
         </div>
 
         <Suspense fallback={<div className="loading-screen"><Icon name="spinner" size={28} /></div>}>
-          {view === "tree"      && <TreeView members={members} isAdmin={isAdmin} onEdit={openModal} onSaveMember={handleSaveMember} onDelete={handleDelete} selected={selected} onSelect={setSelected} />}
+          {view === "tree"      && <TreeView members={members} isAdmin={isAdmin} user={user} onEdit={openModal} onSaveMember={handleSaveMember} onDelete={handleDelete} selected={selected} onSelect={setSelected} />}
           {view === "list"      && <ListView members={members} isAdmin={isAdmin} onEdit={openModal} onDelete={handleDelete} />}
           {view === "admin"     && isAdmin  && <AdminPanel members={members} currentUser={user} onMemberAdded={() => { loadMembers(); loadPendingCount(); }} />}
           {view === "zahtjev"   && !isAdmin && <RequestFormView user={user} members={members} />}
