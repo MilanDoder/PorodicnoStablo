@@ -26,11 +26,11 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <div className="login-page">
-      <svg className="login-wm-top" viewBox="0 0 800 140" xmlns="http://www.w3.org/2000/svg">
+      <svg className="login-wm-top" viewBox="0 0 1000 220" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <path id="arcTop" d="M 20,110 Q 400,0 780,110" />
+          <path id="arcTop" d="M 0,180 Q 500,20 1000,180" />
         </defs>
-        <text fontFamily="Cormorant Garamond, serif" fontSize="90" fontWeight="700" fill="rgba(200,150,62,0.15)" letterSpacing="5">
+        <text fontFamily="Cormorant Garamond, serif" fontSize="200" fontWeight="700" fill="rgba(200,150,62,0.15)" letterSpacing="2">
           <textPath href="#arcTop" startOffset="50%" textAnchor="middle">Додеровићи</textPath>
         </text>
       </svg>
@@ -74,11 +74,11 @@ export default function LoginPage({ onLogin }) {
           {loading ? <><Icon name="spinner" size={16} />Prijava...</> : "Prijavite se →"}
         </button>
       </div>
-      <svg className="login-wm-bot" viewBox="0 0 800 140" xmlns="http://www.w3.org/2000/svg">
+      <svg className="login-wm-bot" viewBox="0 0 1000 220" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <path id="arcBot" d="M 20,10 Q 400,120 780,10" />
+          <path id="arcBot" d="M 0,40 Q 500,200 1000,40" />
         </defs>
-        <text fontFamily="Cormorant Garamond, serif" fontSize="90" fontWeight="700" fill="rgba(200,150,62,0.15)" letterSpacing="5">
+        <text fontFamily="Cormorant Garamond, serif" fontSize="200" fontWeight="700" fill="rgba(200,150,62,0.15)" letterSpacing="2">
           <textPath href="#arcBot" startOffset="50%" textAnchor="middle">Додери</textPath>
         </text>
       </svg>
