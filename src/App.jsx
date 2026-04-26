@@ -310,7 +310,37 @@ useEffect(() => {
         </div>
 
         <Suspense fallback={<div className="loading-screen"><Icon name="spinner" size={28} /></div>}>
-          {view === "tree"      && <TreeView members={members} isAdmin={isAdmin} user={user} onEdit={openModal} onSaveMember={handleSaveMember} onDelete={handleDelete} selected={selected} onSelect={setSelected} />}
+          {view === "tree" && (() => {
+            const males    = members.filter(x => x.gender === "male").length;
+            const females  = members.filter(x => x.gender === "female").length;
+            const deceased = members.filter(x => x.death_year).length;
+            const gens     = [...new Set(members.map(x => x.generational_line).filter(Boolean))].length;
+            return (
+              <>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: "1.5rem",
+                  padding: ".45rem 1.5rem", background: "white",
+                  borderBottom: "1px solid rgba(200,150,62,.12)",
+                  flexShrink: 0, flexWrap: "wrap",
+                }}>
+                  {[
+                    ["🌳", members.length, "чланова"],
+                    ["👨", males,          "мушких"],
+                    ["👩", females,        "женских"],
+                    ["✝",  deceased,       "преминулих"],
+                    ["🔢", gens,           "кољена"],
+                  ].map(([emoji, val, lbl]) => (
+                    <div key={lbl} style={{ display: "flex", alignItems: "center", gap: ".35rem" }}>
+                      <span style={{ fontSize: "1rem" }}>{emoji}</span>
+                      <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "1.1rem", fontWeight: 600, color: "var(--ink)" }}>{val}</span>
+                      <span style={{ fontSize: ".62rem", letterSpacing: ".08em", textTransform: "uppercase", color: "#aaa" }}>{lbl}</span>
+                    </div>
+                  ))}
+                </div>
+                <TreeView members={members} isAdmin={isAdmin} user={user} onEdit={openModal} onSaveMember={handleSaveMember} onDelete={handleDelete} selected={selected} onSelect={setSelected} />
+              </>
+            );
+          })()}
           {view === "list"      && <ListView members={members} isAdmin={isAdmin} onEdit={openModal} onDelete={handleDelete} />}
           {view === "admin"     && isAdmin  && <AdminPanel members={members} currentUser={user} onMemberAdded={() => { loadMembers(); loadPendingCount(); }} />}
           {view === "zahtjev"   && !isAdmin && <RequestFormView user={user} members={members} />}
