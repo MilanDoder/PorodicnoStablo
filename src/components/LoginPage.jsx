@@ -26,15 +26,15 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <div className="login-page">
-      <svg className="login-bg-svg" viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <svg className="login-bg-svg" viewBox="0 0 1200 1000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <path id="arcTop" d="M 50,200 Q 600,20 1150,200" />
-          <path id="arcBot" d="M 50,700 Q 600,880 1150,700" />
+          <path id="arcTop" d="M 0,280 Q 600,80 1200,280" />
+          <path id="arcBot" d="M 0,720 Q 600,920 1200,720" />
         </defs>
-        <text fontFamily="Cormorant Garamond, serif" fontSize="110" fontWeight="700" fill="rgba(200,150,62,0.13)" letterSpacing="6">
+        <text fontFamily="Cormorant Garamond, serif" fontSize="130" fontWeight="700" fill="rgba(200,150,62,0.22)" letterSpacing="4">
           <textPath href="#arcTop" startOffset="50%" textAnchor="middle">Додеровићи</textPath>
         </text>
-        <text fontFamily="Cormorant Garamond, serif" fontSize="110" fontWeight="700" fill="rgba(200,150,62,0.13)" letterSpacing="6">
+        <text fontFamily="Cormorant Garamond, serif" fontSize="130" fontWeight="700" fill="rgba(200,150,62,0.22)" letterSpacing="4">
           <textPath href="#arcBot" startOffset="50%" textAnchor="middle">Додери</textPath>
         </text>
       </svg>
