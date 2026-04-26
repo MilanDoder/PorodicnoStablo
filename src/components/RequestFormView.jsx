@@ -1,3 +1,4 @@
+import { FAMILY_SURNAME } from "../config";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
@@ -8,7 +9,7 @@ const STATUS_CLASS = { pending: "status-pending", approved: "status-approved", r
 const STATUS_ICON  = { pending: "clock", approved: "check", rejected: "x" };
 
 const EMPTY_FORM = {
-  first_name: "", last_name: "Додеровић", gender: "male",
+  first_name: "", last_name: FAMILY_SURNAME, gender: "male",
   birth_year: "", death_year: "", notes: "", parent_ids: [], spouse_name: "",
 };
 

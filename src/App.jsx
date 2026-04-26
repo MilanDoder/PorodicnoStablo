@@ -1,3 +1,4 @@
+import { FAMILY_FULL_NAME, FAMILY_NAME_PLURAL, FAMILY_BRANCH, FAMILY_SURNAME, FAMILY_LOCATION, APP_TITLE, PDF_FILENAME } from "./config";
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { supabase } from "./lib/supabase";
 import Icon from "./components/Icon";
@@ -12,8 +13,8 @@ const HistoryView     = lazy(() => import("./components/HistoryView"));
 const GalleryView     = lazy(() => import("./components/GalleryView"));
 
 const TOPBAR_TITLES = {
-  tree:      "Породично стабло — Додеровићи и Додери",
-  istorijat: "Историјат породице Додеровић и Додер",
+  tree:      `Породично стабло — ${FAMILY_FULL_NAME}`,
+  istorijat: `Историјат породице ${FAMILY_FULL_NAME}`,
   galerija:  "Галерија",
   list:      "Листа чланова",
   admin:     "Админ панел",
@@ -219,7 +220,7 @@ useEffect(() => {
         doc.text(`Generisano: ${new Date().toLocaleDateString("sr-Latn")} · Ukupno clanova: ${members.length}`, PAD, pageH - 4);
         doc.text(`${p} / ${totalPages}`, pageW - PAD, pageH - 4, { align: "right" });
       }
-      doc.save("Doderovici-porodicno-stablo.pdf");
+      doc.save(PDF_FILENAME);
     };
     if (window.jspdf) { load(); }
     else {
@@ -254,7 +255,7 @@ useEffect(() => {
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <img src="/image/grb.png" alt="Грб" className="sidebar-grb" />
-            <div className="sidebar-logo-text">Додеровићи и Додери</div>
+            <div className="sidebar-logo-text">{FAMILY_FULL_NAME}</div>
             <div className="sidebar-sub">Породична архива</div>
           </div>
         </div>
