@@ -12,7 +12,7 @@ const DEFAULT_SCALE = 0.85;
 
 const EMPTY_REQ = {
   first_name: "", last_name: "Додеровић", gender: "male",
-  birth_year: "", death_year: "", notes: "", parent_ids: [], spouse_id: "",
+  birth_year: "", death_year: "", notes: "", parent_ids: [], spouse_name: "",
 };
 
 export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember, onDelete, selected, onSelect }) {
@@ -171,7 +171,7 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
         birth_year: reqForm.birth_year ? parseInt(reqForm.birth_year) : null,
         death_year: reqForm.death_year ? parseInt(reqForm.death_year) : null,
         notes: reqForm.notes || null, parent_ids: reqForm.parent_ids,
-        spouse_id: reqForm.spouse_id ? parseInt(reqForm.spouse_id) : null,
+        spouse_name: reqForm.spouse_name || null,
         status: "pending",
       });
       if (error) { alert("Грешка при слању: " + error.message); return; }
