@@ -16,7 +16,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
 
   const [f, setF] = useState(member || {
     first_name: "", last_name: "Додеровић", birth_year: "", death_year: "",
-    gender: "male", spouse_id: null, notes: "", parent_ids: [], generational_line: null,
+    gender: "male", spouse_name: "", notes: "", parent_ids: [], generational_line: null,
     featured: false, featured_note: "",
   });
   const [childIds, setChildIds] = useState(existingChildIds);
@@ -58,10 +58,12 @@ export default function MemberModal({ member, members, onSave, onClose }) {
             </div>
             <div className="form-field">
               <label className="form-label">Супружник</label>
-              <select className="form-select" value={f.spouse_id || ""} onChange={e => set("spouse_id", e.target.value ? parseInt(e.target.value) : null)}>
-                <option value="">— без супружника —</option>
-                {others.map(m => <option key={m.id} value={m.id}>{memberLabel(m, members)}</option>)}
-              </select>
+              <input
+                className="form-input"
+                value={f.spouse_name || ""}
+                onChange={e => set("spouse_name", e.target.value)}
+                placeholder="Ime и презиме супружника"
+              />
             </div>
             <div className="form-field">
               <label className="form-label">Год. рођења</label>
