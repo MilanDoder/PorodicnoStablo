@@ -1,3 +1,4 @@
+import { FAMILY_SHORT } from "../config";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
@@ -156,7 +157,7 @@ export default function GalleryView({ isAdmin, user }) {
   return (
     <div className="gallery-wrap">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-        <p className="gallery-intro" style={{ margin: 0 }}>Фотографије и успомене породице Додеровић и Додер</p>
+        <p className="gallery-intro" style={{ margin: 0 }}>Фотографије и успомене породице {FAMILY_SHORT}</p>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
           <Icon name="plus" size={13} />{isAdmin ? "Додај фотографију" : "Пошаљи фотографију"}
         </button>
