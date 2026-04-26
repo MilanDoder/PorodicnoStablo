@@ -9,7 +9,7 @@ const STATUS_ICON  = { pending: "clock", approved: "check", rejected: "x" };
 
 const EMPTY_FORM = {
   first_name: "", last_name: "Додеровић", gender: "male",
-  birth_year: "", death_year: "", notes: "", parent_ids: [], spouse_id: "",
+  birth_year: "", death_year: "", notes: "", parent_ids: [], spouse_name: "",
 };
 
 export default function RequestFormView({ user, members }) {
@@ -49,7 +49,7 @@ export default function RequestFormView({ user, members }) {
         death_year: f.death_year ? parseInt(f.death_year) : null,
         notes:      f.notes || null,
         parent_ids: f.parent_ids,
-        spouse_id:  f.spouse_id ? parseInt(f.spouse_id) : null,
+        spouse_name: f.spouse_name || null,
         status:     "pending",
       };
       const { error } = await supabase.from("data_requests").insert(payload);
@@ -114,16 +114,13 @@ export default function RequestFormView({ user, members }) {
             <input className="form-input" type="number" value={f.death_year} onChange={e => set("death_year", e.target.value)} placeholder="празно ако је жив/а" />
           </div>
           <div className="form-field">
-            <label className="form-label">Супружник (из стабла)</label>
-            <select className="form-select" value={f.spouse_id} onChange={e => set("spouse_id", e.target.value)}>
-              <option value="">— без супружника —</option>
-              {members.map(m => {
-                const otac   = members.find(p => (m.parent_ids || []).includes(p.id) && p.gender === "male");
-                const godina = m.birth_year ? ` · ${m.birth_year}.` : "";
-                const imeOca = otac ? ` (${otac.first_name})` : "";
-                return <option key={m.id} value={m.id}>{m.first_name} {m.last_name}{imeOca}{godina}</option>;
-              })}
-            </select>
+            <label className="form-label">Супружник</label>
+            <input
+              className="form-input"
+              value={f.spouse_name || ""}
+              onChange={e => set("spouse_name", e.target.value)}
+              placeholder="Ime и презиме супружника"
+            />
           </div>
           <div className="form-field full">
             <label className="form-label">Родитељи (из стабла)</label>
