@@ -14,11 +14,11 @@ export default function LoginPage({ onLogin }) {
     setError("");
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-      if (authError) { setError("Pogrešan email ili lozinka."); return; }
+      if (authError) { setError("Погрешан имејл или лозинка."); return; }
       const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
       onLogin({ ...data.user, profile });
     } catch {
-      setError("Greška pri povezivanju.");
+      setError("Грешка при повезивању.");
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,7 @@ export default function LoginPage({ onLogin }) {
         <div className="divider" />
         {error && <div className="login-error">{error}</div>}
         <div className="field-group">
-          <label className="field-label">Email</label>
+          <label className="field-label">Eмаил</label>
           <div className="field-wrapper">
             <span className="field-icon"><Icon name="mail" size={14} /></span>
             <input
@@ -57,7 +57,7 @@ export default function LoginPage({ onLogin }) {
           </div>
         </div>
         <div className="field-group">
-          <label className="field-label">Lozinka</label>
+          <label className="field-label">Лозинка</label>
           <div className="field-wrapper">
             <span className="field-icon"><Icon name="lock" size={14} /></span>
             <input
@@ -66,12 +66,12 @@ export default function LoginPage({ onLogin }) {
               value={password}
               onChange={e => { setPassword(e.target.value); setError(""); }}
               onKeyDown={e => e.key === "Enter" && handleLogin()}
-              placeholder="lozinka"
+              placeholder="лозинка"
             />
           </div>
         </div>
         <button className="login-btn" onClick={handleLogin} disabled={loading}>
-          {loading ? <><Icon name="spinner" size={16} />Prijava...</> : "Prijavite se →"}
+          {loading ? <><Icon name="spinner" size={16} />Пријава...</> : "Пријавите се →"}
         </button>
       </div>
       <svg className="login-wm-bot" viewBox="0 0 1000 220" xmlns="http://www.w3.org/2000/svg">
