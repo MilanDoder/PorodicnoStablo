@@ -64,7 +64,7 @@ export default function AdminPanel({ members, currentUser, onMemberAdded }) {
             <div><strong>Допунио:</strong> Бранко Светозаров Додеровић (do Oktobra 2017. godine)</div>
             <div><strong>Напомена:</strong> *1 Тешо — брат по оцу &nbsp;|&nbsp; *2 Драган — брат по оцу</div>
             <div style={{ marginTop: ".5rem", color: "#888", fontSize: ".75rem" }}>
-              Ulogovani kao: <strong>{currentUser?.email}</strong> · Rola: <strong>{currentUser?.profile?.role}</strong>
+              Улоговани као: <strong>{currentUser?.email}</strong> · Рола: <strong>{currentUser?.profile?.role}</strong>
             </div>
           </div>
         </div>
