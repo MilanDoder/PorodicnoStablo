@@ -14,7 +14,8 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
 
   const parents  = members.filter(m => (member.parent_ids || []).includes(m.id));
   const children = members.filter(m => (m.parent_ids || []).includes(member.id));
-  const spouse   = members.find(m => m.id === member.spouse_id);
+  const spouse     = members.find(m => m.id === member.spouse_id);
+  const spouseName = !spouse && member.spouse_name ? member.spouse_name : null;
   const age      = member.birth_year
     ? (member.death_year || new Date().getFullYear()) - member.birth_year
     : null;
@@ -82,10 +83,13 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
         <div className="dp-sec">
           <div className="dp-sec-title">Породица</div>
 
-          {spouse && (
+          {(spouse || spouseName) && (
             <div className="dp-nav-group">
               <span className="dp-key" style={{ fontSize: ".65rem" }}>Супружник</span>
-              <PersonChip m={spouse} />
+              {spouse
+                ? <PersonChip m={spouse} />
+                : <div style={{ fontSize: ".78rem", color: "var(--ink)", padding: ".3rem .5rem", background: "var(--cream)", border: "1px solid rgba(200,150,62,.2)" }}>{spouseName}</div>
+              }
             </div>
           )}
 
@@ -111,7 +115,7 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
             </div>
           )}
 
-          {children.length === 0 && parents.length === 0 && !spouse && (
+          {children.length === 0 && parents.length === 0 && !spouse && !spouseName && (
             <div style={{ fontSize: ".72rem", color: "#ccc", fontStyle: "italic" }}>
               Нема повезаних чланова
             </div>
@@ -133,7 +137,7 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
             className="btn btn-ghost btn-sm"
             style={{ justifyContent: "center", width: "100%" }}
             onClick={() => onRequestChild(member)}
-            title={`Додај дијете за ${member.first_name} ${member.last_name}`}
+            title={`Предложи дијете за ${member.first_name} ${member.last_name}`}
           >
             <Icon name="plus" size={13} />Предложи дијете
           </button>
