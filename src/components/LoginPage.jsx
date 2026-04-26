@@ -14,7 +14,7 @@ export default function LoginPage({ onLogin }) {
     setError("");
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-      if (authError) { setError("Pogrešan email ili lozinka."); return; }
+      if (authError) { setError("Погрешан емаил или лозинка."); return; }
       const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
       onLogin({ ...data.user, profile });
     } catch {
@@ -47,7 +47,7 @@ export default function LoginPage({ onLogin }) {
         <div className="divider" />
         {error && <div className="login-error">{error}</div>}
         <div className="field-group">
-          <label className="field-label">Email</label>
+          <label className="field-label">Емаил</label>
           <div className="field-wrapper">
             <span className="field-icon"><Icon name="mail" size={14} /></span>
             <input
@@ -61,7 +61,7 @@ export default function LoginPage({ onLogin }) {
           </div>
         </div>
         <div className="field-group">
-          <label className="field-label">Lozinka</label>
+          <label className="field-label">Лозинка</label>
           <div className="field-wrapper">
             <span className="field-icon"><Icon name="lock" size={14} /></span>
             <input
@@ -75,7 +75,7 @@ export default function LoginPage({ onLogin }) {
           </div>
         </div>
         <button className="login-btn" onClick={handleLogin} disabled={loading}>
-          {loading ? <><Icon name="spinner" size={16} />Prijava...</> : "Prijavite se →"}
+          {loading ? <><Icon name="spinner" size={16} />Пријава...</> : "Пријавите се →"}
         </button>
       </div>
     </div>
