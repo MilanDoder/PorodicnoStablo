@@ -19,7 +19,7 @@ export const FAMILY_BRANCH = "Додери";
 export const FAMILY_FULL_NAME = `${FAMILY_NAME_PLURAL} и ${FAMILY_BRANCH}`;
 
 // Lokacija / selo
-export const FAMILY_LOCATION = "Пољана";
+export const FAMILY_LOCATION = "";
 
 // Naziv za browser tab
 export const APP_TITLE = `${FAMILY_NAME_PLURAL} — Породична архива`;
