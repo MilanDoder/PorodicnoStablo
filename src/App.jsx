@@ -252,8 +252,11 @@ useEffect(() => {
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <div className="sidebar-logo"><img src="/image/grb.png" alt="Грб" className="sidebar-grb" /> Додеровићи и Додери</div>
-          <div className="sidebar-sub">Породична архива</div>
+          <div className="sidebar-logo">
+            <img src="/image/grb.png" alt="Грб" className="sidebar-grb" />
+            <div className="sidebar-logo-text">Додеровићи и Додери</div>
+            <div className="sidebar-sub">Породична архива</div>
+          </div>
         </div>
         <div className="sidebar-user">
           <div className="sidebar-avatar">{displayName[0]?.toUpperCase()}</div>
