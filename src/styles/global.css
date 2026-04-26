@@ -15,7 +15,7 @@ body { font-family: 'Josefin Sans', sans-serif; background: var(--cream); color:
 /* ── LOGIN ── */
 .login-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; background: radial-gradient(ellipse at 30% 40%, #2a1800, #0d0800); position: relative; overflow: hidden; }
 .login-bg-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; user-select: none; z-index: 0; }
-.login-card { background: var(--parchment); border: 1px solid rgba(200,150,62,.4); box-shadow: 0 8px 40px rgba(26,16,8,.4); padding: 1.5rem 2.5rem 2rem; width: 420px; position: relative; animation: fadeUp .6s ease both; }
+.login-card { background: var(--parchment); border: 1px solid rgba(200,150,62,.4); box-shadow: 0 8px 40px rgba(26,16,8,.4); padding: 0.8rem 2.5rem 1.35rem; width: 450px; position: relative; animation: fadeUp .6s ease both; }
 .login-card::before, .login-card::after { content: ''; position: absolute; width: 20px; height: 20px; border-color: var(--gold); border-style: solid; }
 .login-card::before { top: 12px; left: 12px; border-width: 2px 0 0 2px; }
 .login-card::after  { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; }
@@ -161,7 +161,7 @@ body { font-family: 'Josefin Sans', sans-serif; background: var(--cream); color:
 
 /* ── MODAL ── */
 .overlay { position: fixed; inset: 0; background: rgba(10,5,0,.7); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(2px); animation: fadeIn .2s ease; }
-.modal { background: var(--parchment); border: 1px solid rgba(200,150,62,.3); width: 420px; max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(26,16,8,.3); animation: slideUp .25s ease; }
+.modal { background: var(--parchment); border: 1px solid rgba(200,150,62,.3); width: 450px; max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(26,16,8,.3); animation: slideUp .25s ease; }
 .modal-head { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(200,150,62,.2); display: flex; justify-content: space-between; align-items: center; background: #1a1008; color: var(--gold-light); }
 .modal-title { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; }
 .modal-close { background: none; border: none; color: rgba(200,150,62,.5); cursor: pointer; }
