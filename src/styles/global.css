@@ -13,7 +13,8 @@ body { font-family: 'Josefin Sans', sans-serif; background: var(--cream); color:
 @keyframes nodeFlash { 0% { outline: 3px solid var(--gold); outline-offset: 3px; box-shadow: 0 0 0 6px rgba(200,150,62,.35); } 50% { outline: 3px solid var(--gold-light); outline-offset: 5px; box-shadow: 0 0 0 10px rgba(200,150,62,.15); } 100% { outline: 3px solid var(--gold); outline-offset: 3px; box-shadow: 0 0 0 6px rgba(200,150,62,.35); } }
 
 /* ── LOGIN ── */
-.login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at 30% 40%, #2a1800, #0d0800); }
+.login-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2rem; background: radial-gradient(ellipse at 30% 40%, #2a1800, #0d0800); }
+.login-wm { font-family: 'Cormorant Garamond', serif; font-size: clamp(3.5rem, 8vw, 7rem); font-weight: 700; color: rgba(200,150,62,.15); letter-spacing: .06em; user-select: none; pointer-events: none; text-align: center; line-height: 1; }
 .login-card { background: var(--parchment); border: 1px solid rgba(200,150,62,.4); box-shadow: 0 8px 40px rgba(26,16,8,.4); padding: 2rem 2.5rem; width: 420px; position: relative; animation: fadeUp .6s ease both; }
 .login-card::before, .login-card::after { content: ''; position: absolute; width: 20px; height: 20px; border-color: var(--gold); border-style: solid; }
 .login-card::before { top: 12px; left: 12px; border-width: 2px 0 0 2px; }
