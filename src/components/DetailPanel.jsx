@@ -133,7 +133,7 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
             className="btn btn-ghost btn-sm"
             style={{ justifyContent: "center", width: "100%" }}
             onClick={() => onRequestChild(member)}
-            title={`Предложи дијете за ${member.first_name} ${member.last_name}`}
+            title={`Додај дијете за ${member.first_name} ${member.last_name}`}
           >
             <Icon name="plus" size={13} />Предложи дијете
           </button>
