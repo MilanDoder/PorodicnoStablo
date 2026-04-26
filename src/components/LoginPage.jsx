@@ -29,7 +29,7 @@ export default function LoginPage({ onLogin }) {
       <div className="login-bg-text">Додеровићи</div>
       <div className="login-card">
         <div className="login-logo">
-          <div style={{ fontSize: "2.5rem" }}>🌳</div>
+          <img src="public/image/grb.png" alt="Грб породице" className="login-grb" />
           <div className="login-title">Додеровићи</div>
           <div className="login-family">Пољана</div>
           <div className="login-subtitle">Систем за управљање родословом</div>
