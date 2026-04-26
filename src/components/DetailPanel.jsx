@@ -1,6 +1,6 @@
 import Icon from "./Icon";
 
-export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete, onNavigateTo, onSelect }) {
+export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete, onNavigateTo, onSelect, onRequestChild }) {
   if (!member) {
     return (
       <div className="detail-panel">
@@ -19,10 +19,7 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
     ? (member.death_year || new Date().getFullYear()) - member.birth_year
     : null;
 
-  const goTo = (m) => {
-    onSelect(m);
-    onNavigateTo(m.id);
-  };
+  const goTo = (m) => { onSelect(m); onNavigateTo(m.id); };
 
   const PersonChip = ({ m }) => (
     <button
@@ -45,11 +42,8 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
           {member.gender === "male" ? "Мушки" : "Женски"}
           {member.death_year ? " · Преминуо/ла" : ""}
         </div>
-
         {member.featured && (
-          <div className="dp-featured-badge">
-            <span>★</span> Истакнути члан
-          </div>
+          <div className="dp-featured-badge"><span>★</span> Истакнути члан</div>
         )}
         {member.featured && member.featured_note && (
           <div className="dp-featured-note">{member.featured_note}</div>
@@ -132,20 +126,35 @@ export default function DetailPanel({ member, members, isAdmin, onEdit, onDelete
         )}
       </div>
 
-      {isAdmin && (
-        <div className="dp-foot">
-          <button className="btn btn-ghost btn-sm" style={{ justifyContent: "center" }} onClick={onEdit}>
-            <Icon name="edit" size={13} />Уреди
-          </button>
+      <div className="dp-foot">
+        {/* Korisničko dugme za zahtjev */}
+        {!isAdmin && onRequestChild && (
           <button
-            className="btn btn-danger btn-sm"
-            style={{ justifyContent: "center" }}
-            onClick={() => { if (window.confirm(`Обрисати ${member.first_name}?`)) onDelete(member.id); }}
+            className="btn btn-ghost btn-sm"
+            style={{ justifyContent: "center", width: "100%" }}
+            onClick={() => onRequestChild(member)}
+            title={`Предложи дијете за ${member.first_name} ${member.last_name}`}
           >
-            <Icon name="trash" size={13} />Обриши
+            <Icon name="plus" size={13} />Предложи дијете
           </button>
-        </div>
-      )}
+        )}
+
+        {/* Admin dugmad */}
+        {isAdmin && (
+          <>
+            <button className="btn btn-ghost btn-sm" style={{ justifyContent: "center" }} onClick={onEdit}>
+              <Icon name="edit" size={13} />Уреди
+            </button>
+            <button
+              className="btn btn-danger btn-sm"
+              style={{ justifyContent: "center" }}
+              onClick={() => { if (window.confirm(`Обрисати ${member.first_name}?`)) onDelete(member.id); }}
+            >
+              <Icon name="trash" size={13} />Обриши
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
