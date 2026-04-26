@@ -32,7 +32,7 @@ function subtreeWidth(member, members) {
   return Math.max(selfWidth, childrenWidth);
 }
 
-export default function TreeNode({ member, members, selected, onSelect, isAdmin, onEdit, onAddChild }) {
+export default function TreeNode({ member, members, selected, onSelect, isAdmin, onEdit, onAddChild, onRequestChild }) {
   const children = getChildren(member, members);
   const spouse   = members.find(m => m.id === member.spouse_id);
 
@@ -63,16 +63,19 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
             +{hidden} ♀
           </div>
         )}
-        {isAdmin && (
-          <div className="node-actions">
+        <div className="node-actions">
+          {isAdmin && (
             <button className="node-act" onClick={e => { e.stopPropagation(); onEdit(m); }}>
               <Icon name="edit" size={9} />
             </button>
-            {showAddChild && (
-              <button className="node-act" onClick={e => { e.stopPropagation(); onAddChild(m); }}>+</button>
-            )}
-          </div>
-        )}
+          )}
+          {isAdmin && showAddChild && (
+            <button className="node-act" title="Додај дијете" onClick={e => { e.stopPropagation(); onAddChild(m); }}>+</button>
+          )}
+          {!isAdmin && showAddChild && (
+            <button className="node-act" title="Предложи дијете" onClick={e => { e.stopPropagation(); onRequestChild(m); }}>+</button>
+          )}
+        </div>
       </div>
     );
   };
@@ -121,6 +124,7 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
                 isAdmin={isAdmin}
                 onEdit={onEdit}
                 onAddChild={onAddChild}
+                onRequestChild={onRequestChild}
               />
             </div>
           ))}
