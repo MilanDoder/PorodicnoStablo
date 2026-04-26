@@ -41,6 +41,10 @@ export default function App() {
 
   const isAdmin = user?.profile?.role === "admin";
 
+useEffect(() => {
+  localStorage.clear(); // briše sve podatke iz Local Storage-a
+}, []);
+  
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
