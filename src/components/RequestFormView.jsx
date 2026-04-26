@@ -13,11 +13,12 @@ const EMPTY_FORM = {
 };
 
 export default function RequestFormView({ user, members }) {
-  const [f, setF] = useState(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [myRequests, setMyRequests] = useState([]);
+  const [f,           setF]           = useState(EMPTY_FORM);
+  const [saving,      setSaving]      = useState(false);
+  const [success,     setSuccess]     = useState(false);
+  const [myRequests,  setMyRequests]  = useState([]);
   const [loadingReqs, setLoadingReqs] = useState(true);
+  const [filterStatus, setFilterStatus] = useState("all");
 
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
 
@@ -28,6 +29,7 @@ export default function RequestFormView({ user, members }) {
     const { data } = await supabase
       .from("data_requests")
       .select("*")
+      .eq("user_id", user.id)          // samo moji zahtjevi
       .order("created_at", { ascending: false });
     setMyRequests(data || []);
     setLoadingReqs(false);
@@ -56,15 +58,27 @@ export default function RequestFormView({ user, members }) {
       setF(EMPTY_FORM);
       setTimeout(() => setSuccess(false), 5000);
       loadMyRequests();
-    } catch (e) {
+    } catch {
       alert("Неочекивана грешка. Покушајте поново.");
     } finally {
       setSaving(false);
     }
   };
 
+  const filtered = filterStatus === "all"
+    ? myRequests
+    : myRequests.filter(r => r.status === filterStatus);
+
+  const counts = {
+    all:      myRequests.length,
+    pending:  myRequests.filter(r => r.status === "pending").length,
+    approved: myRequests.filter(r => r.status === "approved").length,
+    rejected: myRequests.filter(r => r.status === "rejected").length,
+  };
+
   return (
     <div className="req-form-wrap">
+
       {/* ── ФОРМА ── */}
       <div className="req-form-card" style={{ marginBottom: "2rem" }}>
         <div className="req-form-title">Пошаљите захтјев за унос члана</div>
@@ -77,7 +91,7 @@ export default function RequestFormView({ user, members }) {
         )}
         <div className="form-grid">
           <div className="form-field">
-            <label className="form-label">Име *</label>
+            <label className="form-label">Ime *</label>
             <input className="form-input" value={f.first_name} onChange={e => set("first_name", e.target.value)} placeholder="нпр. Марко" />
           </div>
           <div className="form-field">
@@ -104,88 +118,123 @@ export default function RequestFormView({ user, members }) {
             <select className="form-select" value={f.spouse_id} onChange={e => set("spouse_id", e.target.value)}>
               <option value="">— без супружника —</option>
               {members.map(m => {
-                const otac = members.find(p => (m.parent_ids || []).includes(p.id) && p.gender === "male");
+                const otac   = members.find(p => (m.parent_ids || []).includes(p.id) && p.gender === "male");
                 const godina = m.birth_year ? ` · ${m.birth_year}.` : "";
                 const imeOca = otac ? ` (${otac.first_name})` : "";
-                return (
-                  <option key={m.id} value={m.id}>
-                    {m.first_name} {m.last_name}{imeOca}{godina}
-                  </option>
-                );
+                return <option key={m.id} value={m.id}>{m.first_name} {m.last_name}{imeOca}{godina}</option>;
               })}
             </select>
           </div>
           <div className="form-field full">
             <label className="form-label">Родитељи (из стабла)</label>
-            <ParentPicker
-              members={members}
-              selectedIds={f.parent_ids || []}
-              onChange={ids => set("parent_ids", ids)}
-            />
+            <ParentPicker members={members} selectedIds={f.parent_ids || []} onChange={ids => set("parent_ids", ids)} />
           </div>
           <div className="form-field full">
             <label className="form-label">Напомена / Извор података</label>
-            <textarea
-              className="form-textarea"
-              value={f.notes}
-              onChange={e => set("notes", e.target.value)}
-              placeholder="Опишите везу или извор ових података..."
-            />
+            <textarea className="form-textarea" value={f.notes} onChange={e => set("notes", e.target.value)} placeholder="Опишите везу или извор ових података..." />
           </div>
         </div>
         <div style={{ marginTop: "1rem", display: "flex", justifyContent: "flex-end" }}>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={saving || !f.first_name}>
-            {saving
-              ? <><Icon name="spinner" size={14} />Слање...</>
-              : <><Icon name="send" size={14} />Пошаљи захтјев</>}
+            {saving ? <><Icon name="spinner" size={14} />Слање...</> : <><Icon name="send" size={14} />Пошаљи захтјев</>}
           </button>
         </div>
       </div>
 
       {/* ── МОЈИ ЗАХТЈЕВИ ── */}
-      <div className="section-title">Моји захтјеви</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: ".75rem", flexWrap: "wrap", gap: ".5rem" }}>
+        <div className="section-title" style={{ margin: 0 }}>Моји захтјеви</div>
+
+        {/* Filter dugmad */}
+        <div style={{ display: "flex", gap: ".35rem" }}>
+          {[
+            ["all",      "Сви",         counts.all],
+            ["pending",  "На чекању",   counts.pending],
+            ["approved", "Прихваћени",  counts.approved],
+            ["rejected", "Одбијени",    counts.rejected],
+          ].map(([val, lbl, cnt]) => (
+            <button
+              key={val}
+              onClick={() => setFilterStatus(val)}
+              style={{
+                padding: ".25rem .65rem",
+                fontSize: ".62rem",
+                letterSpacing: ".08em",
+                textTransform: "uppercase",
+                border: `1px solid ${filterStatus === val ? "var(--gold)" : "rgba(200,150,62,.25)"}`,
+                background: filterStatus === val ? "rgba(200,150,62,.12)" : "white",
+                color: filterStatus === val ? "var(--gold-dark)" : "#aaa",
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {lbl} {cnt > 0 && <span style={{ fontWeight: 700 }}>({cnt})</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {loadingReqs ? (
         <div style={{ textAlign: "center", padding: "2rem", color: "#aaa" }}>
           <Icon name="spinner" size={20} />
         </div>
-      ) : myRequests.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">📭</div>
-          <div className="empty-state-text">Још нисте послали ниједан захтјев.</div>
+          <div className="empty-state-text">
+            {myRequests.length === 0 ? "Још нисте послали ниједан захтјев." : "Нема захтјева за изабрани филтер."}
+          </div>
         </div>
       ) : (
-        myRequests.map(req => (
-          <div className="req-card" key={req.id}>
-            <div className="req-card-head">
-              <span className="req-card-name">{req.first_name} {req.last_name}</span>
-              <span className={`status-badge ${STATUS_CLASS[req.status]}`}>
-                <Icon name={STATUS_ICON[req.status]} size={10} />
-                {STATUS_LABEL[req.status]}
-              </span>
-            </div>
-            <div className="req-card-body">
-              <div className="req-field">
-                <div className="req-field-key">Пол</div>
-                {req.gender === "male" ? "Мушки" : "Женски"}
-              </div>
-              {req.birth_year && (
-                <div className="req-field">
-                  <div className="req-field-key">Год. рођења</div>
-                  {req.birth_year}.
-                </div>
-              )}
-              <div className="req-field">
-                <div className="req-field-key">Послато</div>
-                {new Date(req.created_at).toLocaleDateString("sr-Latn")}
-              </div>
-            </div>
-            {req.admin_note && (
-              <div style={{ padding: ".5rem 1rem", fontSize: ".72rem", color: "#666", borderTop: "1px solid rgba(200,150,62,.08)" }}>
-                <span style={{ color: "var(--gold-dark)", fontWeight: 600 }}>Админ коментар:</span> {req.admin_note}
-              </div>
-            )}
-          </div>
-        ))
+        <table className="mtable">
+          <thead>
+            <tr>
+              <th>Ime и презиме</th>
+              <th>Пол</th>
+              <th>Год. рођења</th>
+              <th>Родитељи</th>
+              <th>Послато</th>
+              <th>Статус</th>
+              <th>Коментар админа</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(req => {
+              const parentNames = (req.parent_ids || [])
+                .map(pid => members.find(m => m.id === pid))
+                .filter(Boolean)
+                .map(m => `${m.first_name} ${m.last_name}`)
+                .join(", ");
+
+              return (
+                <tr key={req.id}>
+                  <td><strong>{req.first_name} {req.last_name}</strong></td>
+                  <td>
+                    <span className={`gbadge ${req.gender}`}>
+                      {req.gender === "male" ? "👨 Мушки" : "👩 Женски"}
+                    </span>
+                  </td>
+                  <td style={{ color: "#666" }}>{req.birth_year || <span style={{ color: "#ccc" }}>—</span>}</td>
+                  <td style={{ fontSize: ".73rem", color: "#555" }}>
+                    {parentNames || <span style={{ color: "#ccc" }}>—</span>}
+                  </td>
+                  <td style={{ fontSize: ".72rem", color: "#999", whiteSpace: "nowrap" }}>
+                    {new Date(req.created_at).toLocaleDateString("sr-Latn")}
+                  </td>
+                  <td>
+                    <span className={`status-badge ${STATUS_CLASS[req.status]}`}>
+                      <Icon name={STATUS_ICON[req.status]} size={10} />
+                      {STATUS_LABEL[req.status]}
+                    </span>
+                  </td>
+                  <td style={{ fontSize: ".72rem", color: "#666", fontStyle: req.admin_note ? "normal" : "italic" }}>
+                    {req.admin_note || <span style={{ color: "#ccc" }}>—</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       )}
     </div>
   );
