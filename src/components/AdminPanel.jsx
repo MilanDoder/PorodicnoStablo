@@ -1,4 +1,3 @@
-import { FAMILY_NAME_PLURAL, FAMILY_LOCATION } from "../config";
 import { useState } from "react";
 import AdminRequestsView from "./AdminRequestsView";
 
@@ -58,14 +57,14 @@ export default function AdminPanel({ members, currentUser, onMemberAdded }) {
             ))}
           </div>
 
-          <div className="section-title">Informacije o dokumentu</div>
+          <div className="section-title">Информације о документу</div>
           <div className="info-box">
-            <div><strong>Izvor:</strong> Porodično stablo {FAMILY_NAME_PLURAL} — {FAMILY_LOCATION}</div>
-            <div><strong>Autor:</strong> Мићо Обрадов Додеровић (do Novembra 1990. godine)</div>
-            <div><strong>Dopunio:</strong> Бранко Светозаров Додеровић (do Oktobra 2017. godine)</div>
-            <div><strong>Napomena:</strong> *1 Тешо — брат по оцу &nbsp;|&nbsp; *2 Драган — брат по оцу</div>
+            <div><strong>Извор:</strong> Породично стабло {FAMILY_NAME_PLURAL} — {FAMILY_LOCATION}</div>
+            <div><strong>Аутор:</strong> Мићо Обрадов Додеровић (do Novembra 1990. godine)</div>
+            <div><strong>Допунио:</strong> Бранко Светозаров Додеровић (do Oktobra 2017. godine)</div>
+            <div><strong>Напомена:</strong> *1 Тешо — брат по оцу &nbsp;|&nbsp; *2 Драган — брат по оцу</div>
             <div style={{ marginTop: ".5rem", color: "#888", fontSize: ".75rem" }}>
-              Ulogovani kao: <strong>{currentUser?.email}</strong> · Rola: <strong>{currentUser?.profile?.role}</strong>
+              Улоговани као: <strong>{currentUser?.email}</strong> · Рола: <strong>{currentUser?.profile?.role}</strong>
             </div>
           </div>
         </div>
