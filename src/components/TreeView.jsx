@@ -5,13 +5,14 @@ import TreeNode from "./TreeNode";
 import HorizTree from "./HorizTree";
 import DetailPanel from "./DetailPanel";
 import MemberModal from "./MemberModal";
+import { FAMILY_SURNAME } from "../config";
 
 const MIN_SCALE = 0.2;
 const MAX_SCALE = 2.5;
 const DEFAULT_SCALE = 0.85;
 
 const EMPTY_REQ = {
-  first_name: "", last_name: "Додеровић", gender: "male",
+  first_name: "", last_name: FAMILY_SURNAME, gender: "male",
   birth_year: "", death_year: "", notes: "", parent_ids: [], spouse_name: "",
 };
 
