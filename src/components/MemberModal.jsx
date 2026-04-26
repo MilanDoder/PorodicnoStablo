@@ -1,3 +1,4 @@
+import { FAMILY_SURNAME } from "../config";
 import { useState } from "react";
 import Icon from "./Icon";
 import ParentPicker from "./ParentPicker";
@@ -15,7 +16,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
     : [];
 
   const [f, setF] = useState(member || {
-    first_name: "", last_name: "Додеровић", birth_year: "", death_year: "",
+    first_name: "", last_name: FAMILY_SURNAME, birth_year: "", death_year: "",
     gender: "male", spouse_name: "", notes: "", parent_ids: [], generational_line: null,
     featured: false, featured_note: "",
   });
