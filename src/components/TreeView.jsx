@@ -280,6 +280,7 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
         onDelete={id => { onDelete(id); onSelect(null); }}
         onNavigateTo={scrollToMember}
         onSelect={onSelect}
+        onRequestChild={!isAdmin ? handleRequestChild : undefined}
       />
 
       {addChildOf && (
