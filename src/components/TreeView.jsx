@@ -1,16 +1,28 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
 import TreeNode from "./TreeNode";
 import DetailPanel from "./DetailPanel";
 import MemberModal from "./MemberModal";
+import ParentPicker from "./ParentPicker";
 
 const MIN_SCALE = 0.2;
 const MAX_SCALE = 2.5;
 const DEFAULT_SCALE = 0.85;
 
-export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDelete, selected, onSelect }) {
-  const [addChildOf, setAddChildOf] = useState(null);
-  const [scale, setScale]           = useState(DEFAULT_SCALE);
+const EMPTY_REQ = {
+  first_name: "", last_name: "Додеровић", gender: "male",
+  birth_year: "", death_year: "", notes: "", parent_ids: [], spouse_id: "",
+};
+
+export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember, onDelete, selected, onSelect }) {
+  const [addChildOf,    setAddChildOf]    = useState(null);
+  const [requestParent, setRequestParent] = useState(null); // za korisnike
+  const [reqForm,       setReqForm]       = useState(EMPTY_REQ);
+  const [reqSaving,     setReqSaving]     = useState(false);
+  const [reqSuccess,    setReqSuccess]    = useState(false);
+  const [scale,         setScale]         = useState(DEFAULT_SCALE);
+
   const canvasRef   = useRef(null);
   const innerRef    = useRef(null);
   const mmCanvasRef = useRef(null);
@@ -75,24 +87,39 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
     }
   };
 
+  // ── POPRAVLJENO centriranje ──────────────────────────────────────────────
   const scrollToMember = useCallback((memberId) => {
     if (!canvasRef.current || !innerRef.current) return;
     const el = innerRef.current.querySelector(`[data-member-id="${memberId}"]`);
     if (!el) return;
-    const canvas    = canvasRef.current;
-    const inner     = innerRef.current;
-    const innerRect = inner.getBoundingClientRect();
-    const elRect    = el.getBoundingClientRect();
-    const elLeft    = (elRect.left - innerRect.left) / scale;
-    const elTop     = (elRect.top  - innerRect.top)  / scale;
-    const elW       = elRect.width  / scale;
-    const elH       = elRect.height / scale;
-    const targetLeft = (elLeft + elW / 2) * scale - canvas.clientWidth  / 2;
-    const targetTop  = (elTop  + elH / 2) * scale - canvas.clientHeight / 2;
-    canvas.scrollTo({ left: targetLeft, top: targetTop, behavior: "smooth" });
+
+    const canvas = canvasRef.current;
+
+    // Koordinate elementa relativno na scroll container, uzimajući u obzir scale
+    const canvasRect = canvas.getBoundingClientRect();
+    const elRect     = el.getBoundingClientRect();
+
+    // Centar elementa u viewport koordinatama
+    const elCenterX = elRect.left + elRect.width  / 2;
+    const elCenterY = elRect.top  + elRect.height / 2;
+
+    // Centar canvas-a u viewport koordinatama
+    const canvasCenterX = canvasRect.left + canvasRect.width  / 2;
+    const canvasCenterY = canvasRect.top  + canvasRect.height / 2;
+
+    // Koliko treba da scrollujemo da centriramo element
+    const dx = elCenterX - canvasCenterX;
+    const dy = elCenterY - canvasCenterY;
+
+    canvas.scrollTo({
+      left: canvas.scrollLeft + dx,
+      top:  canvas.scrollTop  + dy,
+      behavior: "smooth",
+    });
+
     el.classList.add("node-flash");
     setTimeout(() => el.classList.remove("node-flash"), 1200);
-  }, [scale]);
+  }, []);
 
   const drawMiniMap = useCallback(() => {
     const canvas = mmCanvasRef.current;
@@ -171,6 +198,47 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
     setAddChildOf(null);
   };
 
+  // ── Korisnik otvara request modal za dijete ──────────────────────────────
+  const handleRequestChild = (parent) => {
+    setReqForm({
+      ...EMPTY_REQ,
+      last_name:  parent.last_name,
+      parent_ids: [parent.id, ...(parent.spouse_id ? [parent.spouse_id] : [])],
+    });
+    setRequestParent(parent);
+    setReqSuccess(false);
+  };
+
+  const handleSubmitRequest = async () => {
+    if (!reqForm.first_name) return;
+    setReqSaving(true);
+    try {
+      const payload = {
+        user_id:    user?.id,
+        user_email: user?.email,
+        first_name: reqForm.first_name,
+        last_name:  reqForm.last_name,
+        gender:     reqForm.gender,
+        birth_year: reqForm.birth_year ? parseInt(reqForm.birth_year) : null,
+        death_year: reqForm.death_year ? parseInt(reqForm.death_year) : null,
+        notes:      reqForm.notes || null,
+        parent_ids: reqForm.parent_ids,
+        spouse_id:  reqForm.spouse_id ? parseInt(reqForm.spouse_id) : null,
+        status:     "pending",
+      };
+      const { error } = await supabase.from("data_requests").insert(payload);
+      if (error) { alert("Грешка при слању: " + error.message); return; }
+      setReqSuccess(true);
+      setTimeout(() => { setRequestParent(null); setReqSuccess(false); }, 2500);
+    } catch {
+      alert("Неочекивана грешка. Покушајте поново.");
+    } finally {
+      setReqSaving(false);
+    }
+  };
+
+  const setReq = (k, v) => setReqForm(p => ({ ...p, [k]: v }));
+
   return (
     <div className="tree-wrap">
       <div
@@ -204,6 +272,7 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
                   isAdmin={isAdmin}
                   onEdit={onEdit}
                   onAddChild={setAddChildOf}
+                  onRequestChild={handleRequestChild}
                 />
               </div>
             ))}
@@ -252,6 +321,7 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
         onSelect={onSelect}
       />
 
+      {/* Admin: dodaj dijete direktno */}
       {addChildOf && (
         <MemberModal
           member={{
@@ -263,6 +333,68 @@ export default function TreeView({ members, isAdmin, onEdit, onSaveMember, onDel
           onSave={handleSaveChild}
           onClose={() => setAddChildOf(null)}
         />
+      )}
+
+      {/* Korisnik: pošalji zahtjev za dijete */}
+      {requestParent && (
+        <div className="overlay" onClick={e => { if (e.target === e.currentTarget) setRequestParent(null); }}>
+          <div className="modal" style={{ width: 480 }}>
+            <div className="modal-head">
+              <span className="modal-title">
+                Предложи дијете за: {requestParent.first_name} {requestParent.last_name}
+              </span>
+              <button className="modal-close" onClick={() => setRequestParent(null)}>
+                <Icon name="x" size={16} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {reqSuccess ? (
+                <div className="req-success" style={{ textAlign: "center", padding: "1.5rem" }}>
+                  ✓ Захтјев је успјешно послат!
+                </div>
+              ) : (
+                <>
+                  <p style={{ fontSize: ".75rem", color: "#777", marginBottom: "1rem", lineHeight: 1.6 }}>
+                    Попуните податке о новом члану. Администратор ће прегледати ваш захтјев.
+                  </p>
+                  <div className="form-grid">
+                    <div className="form-field">
+                      <label className="form-label">Ime *</label>
+                      <input className="form-input" value={reqForm.first_name} onChange={e => setReq("first_name", e.target.value)} placeholder="нпр. Марко" autoFocus />
+                    </div>
+                    <div className="form-field">
+                      <label className="form-label">Презиме</label>
+                      <input className="form-input" value={reqForm.last_name} onChange={e => setReq("last_name", e.target.value)} />
+                    </div>
+                    <div className="form-field">
+                      <label className="form-label">Пол</label>
+                      <select className="form-select" value={reqForm.gender} onChange={e => setReq("gender", e.target.value)}>
+                        <option value="male">Мушки</option>
+                        <option value="female">Женски</option>
+                      </select>
+                    </div>
+                    <div className="form-field">
+                      <label className="form-label">Год. рођења</label>
+                      <input className="form-input" type="number" value={reqForm.birth_year} onChange={e => setReq("birth_year", e.target.value)} placeholder="нпр. 1990" />
+                    </div>
+                    <div className="form-field full">
+                      <label className="form-label">Напомена</label>
+                      <textarea className="form-textarea" value={reqForm.notes} onChange={e => setReq("notes", e.target.value)} placeholder="Додатне информације..." />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            {!reqSuccess && (
+              <div className="modal-foot">
+                <button className="btn btn-ghost btn-sm" onClick={() => setRequestParent(null)}>Откажи</button>
+                <button className="btn btn-primary" onClick={handleSubmitRequest} disabled={reqSaving || !reqForm.first_name}>
+                  {reqSaving ? <><Icon name="spinner" size={14} />Слање...</> : <><Icon name="send" size={14} />Пошаљи захтјев</>}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
