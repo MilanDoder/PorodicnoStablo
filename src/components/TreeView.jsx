@@ -146,29 +146,41 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
     const main = canvasRef.current;
     const inner = innerRef.current;
     if (!main || !inner) return;
-    // Nadji vizuelno najgornji-levi cvor (najmanji top+left u scroll prostoru)
-    const allNodes = Array.from(inner.querySelectorAll("[data-member-id]"));
-    if (!allNodes.length) return;
-    const mainRect = main.getBoundingClientRect();
-    let topNode = allNodes[0];
-    let topScore = Infinity;
-    allNodes.forEach(el => {
-      const r = el.getBoundingClientRect();
-      const scrollX = r.left - mainRect.left + main.scrollLeft;
-      const scrollY = r.top  - mainRect.top  + main.scrollTop;
-      // Horizontalni prikaz: prioritet levo (X), vertikalni: prioritet gore (Y)
-      const score = horizMode ? scrollX * 10 + scrollY : scrollY * 10 + scrollX;
-      if (score < topScore) { topScore = score; topNode = el; }
+
+    // Nadji root clanove direktno iz podataka (bez roditelja u stablu)
+    const roots = members.filter(
+      m => !(m.parent_ids || []).some(pid => members.find(x => x.id === pid))
+    );
+    // Uzmi primarni root (muski, ili prvi ako nema)
+    const primaryRoots = roots.filter(m => {
+      if (!m.spouse_id) return true;
+      const sp = members.find(x => x.id === m.spouse_id);
+      return !sp || m.id < sp.id;
     });
-    const r = topNode.getBoundingClientRect();
+    const targetId = primaryRoots.length ? primaryRoots[0].id : (roots[0]?.id ?? null);
+    if (!targetId) return;
+
+    const el = inner.querySelector(`[data-member-id="${targetId}"]`);
+    if (!el) return;
+
+    const mainRect = main.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    // Scrolluj tako da root bude u gornjem-lijevom uglu sa paddingom
     const targetScrollLeft = (r.left - mainRect.left + main.scrollLeft) - 60;
     const targetScrollTop  = (r.top  - mainRect.top  + main.scrollTop)  - 60;
     main.scrollTo({ left: Math.max(0, targetScrollLeft), top: Math.max(0, targetScrollTop), behavior: "smooth" });
-  }, [horizMode]);
+  }, [members]);
 
   useEffect(() => {
-    const t = setTimeout(scrollToRoot, 200);
-    return () => clearTimeout(t);
+    // Cekamo da se DOM potpuno renderuje prije scrollanja
+    // requestAnimationFrame x2 garantuje da su layout i paint završeni
+    let raf1, raf2;
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        scrollToRoot();
+      });
+    });
+    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
   }, [horizMode, members.length, scrollToRoot]);
 
   useEffect(() => {
