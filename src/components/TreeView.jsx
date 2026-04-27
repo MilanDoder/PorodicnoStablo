@@ -146,16 +146,25 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
     const main = canvasRef.current;
     const inner = innerRef.current;
     if (!main || !inner) return;
-    // Find first root node
-    const firstNode = inner.querySelector("[data-member-id]");
-    if (!firstNode) return;
+    // Nadji vizuelno najgornji-levi cvor (najmanji top+left u scroll prostoru)
+    const allNodes = Array.from(inner.querySelectorAll("[data-member-id]"));
+    if (!allNodes.length) return;
     const mainRect = main.getBoundingClientRect();
-    const nodeRect = firstNode.getBoundingClientRect();
-    // We want the root visible near top-left with some padding
-    const targetScrollLeft = (nodeRect.left - mainRect.left + main.scrollLeft) - 60;
-    const targetScrollTop  = (nodeRect.top  - mainRect.top  + main.scrollTop)  - 60;
+    let topNode = allNodes[0];
+    let topScore = Infinity;
+    allNodes.forEach(el => {
+      const r = el.getBoundingClientRect();
+      const scrollX = r.left - mainRect.left + main.scrollLeft;
+      const scrollY = r.top  - mainRect.top  + main.scrollTop;
+      // Horizontalni prikaz: prioritet levo (X), vertikalni: prioritet gore (Y)
+      const score = horizMode ? scrollX * 10 + scrollY : scrollY * 10 + scrollX;
+      if (score < topScore) { topScore = score; topNode = el; }
+    });
+    const r = topNode.getBoundingClientRect();
+    const targetScrollLeft = (r.left - mainRect.left + main.scrollLeft) - 60;
+    const targetScrollTop  = (r.top  - mainRect.top  + main.scrollTop)  - 60;
     main.scrollTo({ left: Math.max(0, targetScrollLeft), top: Math.max(0, targetScrollTop), behavior: "smooth" });
-  }, []);
+  }, [horizMode]);
 
   useEffect(() => {
     const t = setTimeout(scrollToRoot, 200);
@@ -302,8 +311,21 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
 
       {/* Kontrole zoom */}
       <div className="tree-controls">
-        <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.min(MAX_SCALE, s + 0.1))} title="Увећај"><Icon name="zoomin" size={16} /></button>
-        <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.max(MIN_SCALE, s - 0.1))} title="Умањи"><Icon name="zoomout" size={16} /></button>
+        <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.min(MAX_SCALE, +(s + 0.1).toFixed(2)))} title="Увећај"><Icon name="zoomin" size={16} /></button>
+        <div className="zoom-slider-wrap">
+          <input
+            type="range"
+            className="zoom-slider"
+            min={MIN_SCALE}
+            max={MAX_SCALE}
+            step={0.05}
+            value={scale}
+            onChange={e => setScale(parseFloat(e.target.value))}
+            title="Зум"
+          />
+          <span className="zoom-label">{Math.round(scale * 100)}%</span>
+        </div>
+        <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.max(MIN_SCALE, +(s - 0.1).toFixed(2)))} title="Умањи"><Icon name="zoomout" size={16} /></button>
         <button className="tree-ctrl-btn" onClick={() => setScale(DEFAULT_SCALE)} title="Ресетуј"><Icon name="reset" size={16} /></button>
       </div>
 
