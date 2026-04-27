@@ -38,7 +38,6 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
           gender: req.gender, birth_year: req.birth_year,
           death_year: req.death_year, notes: req.notes,
           spouse_id: req.spouse_id || null,
-          spouse_name: req.spouse_name || null,
           generational_line: req.generational_line || null,
           featured: false,
         }).select().single();
