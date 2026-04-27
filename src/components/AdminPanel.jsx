@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AdminRequestsView from "./AdminRequestsView";
+import { FAMILY_NAME_PLURAL, FAMILY_LOCATION } from "../config";
 
 const TAB_STYLE_BASE = {
   padding: ".6rem 1rem", fontSize: ".68rem", letterSpacing: ".08em",
