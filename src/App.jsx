@@ -8,6 +8,7 @@ import ListView from "./components/ListView";
 import MemberModal from "./components/MemberModal";
 
 const AdminPanel      = lazy(() => import("./components/AdminPanel"));
+const SeoeView        = lazy(() => import("./components/SeoeView"));
 const RequestFormView = lazy(() => import("./components/RequestFormView"));
 const HistoryView     = lazy(() => import("./components/HistoryView"));
 const GalleryView     = lazy(() => import("./components/GalleryView"));
@@ -18,6 +19,8 @@ const TOPBAR_TITLES = {
   galerija:  "Галерија",
   list:      "Листа чланова",
   admin:     "Админ панел",
+  seobe:     "Сеобе",
+
   zahtjev:   "Захтев за унос члана",
 };
 
@@ -242,7 +245,7 @@ useEffect(() => {
     { id: "istorijat", icon: "history", label: "Историја" },
     { id: "galerija",  icon: "image",   label: "Галерија" },
     ...(isAdmin
-      ? [{ id: "admin",   icon: "shield", label: "Админ панел", badge: pendingCount > 0 ? pendingCount : null }]
+      ? [{ id: "seobe", icon: "history", label: "Сеобе" }, { id: "admin", icon: "shield", label: "Админ панел", badge: pendingCount > 0 ? pendingCount : null }]
       : [{ id: "zahtjev", icon: "inbox",  label: "Захтјев за унос члана породице" }]
     ),
   ];
@@ -348,6 +351,7 @@ useEffect(() => {
           {view === "zahtjev"   && !isAdmin && <RequestFormView user={user} members={members} />}
           {view === "istorijat" && <HistoryView user={user} isAdmin={isAdmin} />}
           {view === "galerija"  && <GalleryView user={user} isAdmin={isAdmin} />}
+          {view === "seobe"     && isAdmin && <SeoeView isAdmin={isAdmin} />}
         </Suspense>
       </div>
 
