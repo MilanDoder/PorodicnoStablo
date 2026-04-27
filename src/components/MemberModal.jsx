@@ -134,7 +134,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
                 className="form-input"
                 value={f.spouse_name || ""}
                 onChange={e => set("spouse_name", e.target.value)}
-                placeholder="Ime i prezime supružnika..."
+                placeholder="Име и презиме супружника..."
               />
               <span style={{ fontSize: ".6rem", color: "#aaa", marginTop: 2 }}>
                 Уносите само ако супружник није члан овог стабла
