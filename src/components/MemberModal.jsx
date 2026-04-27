@@ -18,7 +18,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
   const [f, setF] = useState(member || {
     first_name: "", last_name: FAMILY_SURNAME, birth_year: "", death_year: "",
     gender: "male", notes: "", parent_ids: [], generational_line: null,
-    featured: false, featured_note: "",
+    featured: false, featured_note: "", spouse_name: "",
   });
   const [childIds, setChildIds] = useState(existingChildIds);
   const [saving, setSaving] = useState(false);
@@ -127,6 +127,19 @@ export default function MemberModal({ member, members, onSave, onClose }) {
                 </span>
               </div>
             )}
+
+            <div className="form-field full">
+              <label className="form-label">Супружник / Супружница</label>
+              <input
+                className="form-input"
+                value={f.spouse_name || ""}
+                onChange={e => set("spouse_name", e.target.value)}
+                placeholder="Ime i prezime supružnika..."
+              />
+              <span style={{ fontSize: ".6rem", color: "#aaa", marginTop: 2 }}>
+                Уносите само ако супружник није члан овог стабла
+              </span>
+            </div>
 
             <div className="form-field full">
               <label className="form-label">Биљешке</label>
