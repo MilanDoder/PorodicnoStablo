@@ -4,6 +4,7 @@ import Icon from "./Icon";
 const NODE_WIDTH = 110;
 const NODE_GAP   = 20;
 
+// Da li dijete ima muškog roditelja koji je VIDLJIV u glavnom stablu
 function hasVisibleMaleParent(child, members) {
   const parentIds = child.parent_ids || [];
   return parentIds.some(pid => {
@@ -12,6 +13,7 @@ function hasVisibleMaleParent(child, members) {
   });
 }
 
+// Djeca koja idu u GLAVNO stablo (prikazuju se kao čvorovi)
 function getChildren(member, members) {
   return members.filter(m => {
     if (!(m.parent_ids || []).includes(member.id)) return false;
@@ -33,56 +35,49 @@ function subtreeWidth(member, members) {
   return Math.max(selfWidth, childrenWidth);
 }
 
-// Djeca koja NISU u glavnom stablu — nemaju muškog roditelja koji je u stablu
+// Djeca člana koja NISU u glavnom stablu
+// — direktna djeca bez muškog roditelja u stablu
 function getOffTreeChildren(member, members) {
-  return members.filter(c => (c.parent_ids || []).includes(member.id) && !hasVisibleMaleParent(c, members));
-}
-
-// Set svih off-tree clanova (rekurzivno) — za provjeru tokom rekurzije
-function buildOffTreeSet(members) {
-  const roots = new Set(
-    members
-      .filter(m => !(m.parent_ids || []).some(pid => members.find(x => x.id === pid)))
-      .map(m => m.id)
+  return members.filter(c =>
+    (c.parent_ids || []).includes(member.id) && !hasVisibleMaleParent(c, members)
   );
-  // Off-tree su svi koji nemaju muškog roditelja u glavnom stablu
-  return new Set(members.filter(m => !hasVisibleMaleParent(m, members) && !roots.has(m.id)).map(m => m.id));
 }
 
-// Djeca nekog off-tree clana — sva direktna djeca (bez obzira na pol)
-// jer je roditelj vec off-tree, pa i njegova djeca jesu
-function getOffTreeChildrenDeep(member, members) {
+// Sva direktna djeca — za dublje nivoe gdje je roditelj već off-tree
+function getAllChildren(member, members) {
   return members.filter(c => (c.parent_ids || []).includes(member.id));
 }
 
-// Rekurzivna komponenta za off-tree podstablo
+// ── Rekurzivna komponenta za off-tree podstablo ───────────────────────────
 function OffTreeSubtree({ member, members, selected, onSelect, isAdmin, onEdit, depth = 0, isDeep = false }) {
   const [expanded, setExpanded] = useState(new Set());
 
-  // Na prvom nivou (direktna djeca zenskog clana stabla): samo off-tree
-  // Na dubljim nivoima (djeca off-tree clanova): SVA djeca
   const children = isDeep
-    ? getOffTreeChildrenDeep(member, members)
+    ? getAllChildren(member, members)
     : getOffTreeChildren(member, members);
 
-  const toggle = (id) => setExpanded(prev => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
+  const toggle = (id, e) => {
+    e.stopPropagation();
+    setExpanded(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   if (children.length === 0) return null;
 
   return (
-    <div className="female-children-panel" style={{ marginTop: depth === 0 ? ".5rem" : ".35rem", marginLeft: depth * 12 }}>
+    <div
+      className="female-children-panel"
+      style={{ marginTop: depth === 0 ? ".5rem" : ".35rem", marginLeft: depth * 14 }}
+    >
       <div className="female-children-label">
         Дјеца: {member.first_name} {member.last_name}
       </div>
       <div className="female-children-list">
         {children.map(child => {
-          const grandchildren = isDeep
-            ? getOffTreeChildrenDeep(child, members)
-            : getOffTreeChildren(child, members);
+          const grandchildren = getAllChildren(child, members);
           const isOpen = expanded.has(child.id);
 
           return (
@@ -90,16 +85,23 @@ function OffTreeSubtree({ member, members, selected, onSelect, isAdmin, onEdit, 
               <div
                 className={`female-child-card ${child.gender}${selected?.id === child.id ? " sel" : ""}`}
                 data-member-id={child.id}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: ".4rem", textAlign: "left", padding: ".35rem .5rem" }}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center",
+                  gap: ".4rem", textAlign: "left", padding: ".35rem .5rem",
+                }}
                 onClick={e => { e.stopPropagation(); onSelect(child); }}
               >
                 <div style={{ flex: 1 }}>
                   <div className="female-child-name">{child.first_name} {child.last_name}</div>
                   {child.birth_year && (
-                    <div className="female-child-note">{child.birth_year}{child.death_year ? `–${child.death_year}` : ""}</div>
+                    <div className="female-child-note">
+                      {child.birth_year}{child.death_year ? `–${child.death_year}` : ""}
+                    </div>
                   )}
                   {child.generational_line && (
-                    <div className="female-child-note" style={{ color: "var(--gold-dark)", fontWeight: 600 }}>{child.generational_line}. кољено</div>
+                    <div className="female-child-note" style={{ color: "var(--gold-dark)", fontWeight: 600 }}>
+                      {child.generational_line}. кољено
+                    </div>
                   )}
                 </div>
 
@@ -108,7 +110,7 @@ function OffTreeSubtree({ member, members, selected, onSelect, isAdmin, onEdit, 
                     className="node-hidden-children"
                     style={{ margin: 0, cursor: "pointer", border: "none", background: "none", padding: ".1rem .3rem", flexShrink: 0 }}
                     title="Прикажи дјецу"
-                    onClick={e => { e.stopPropagation(); toggle(child.id); }}
+                    onClick={e => toggle(child.id, e)}
                   >
                     {isOpen ? "▲" : "▼"} {grandchildren.length}
                   </button>
@@ -145,21 +147,22 @@ function OffTreeSubtree({ member, members, selected, onSelect, isAdmin, onEdit, 
   );
 }
 
+// ── Glavni TreeNode ───────────────────────────────────────────────────────
 export default function TreeNode({ member, members, selected, onSelect, isAdmin, onEdit, onAddChild, onRequestChild }) {
   const children = getChildren(member, members);
   const spouse   = members.find(m => m.id === member.spouse_id);
-  const [expandedFemale, setExpandedFemale] = useState(new Set());
+  const [expandedOffTree, setExpandedOffTree] = useState(new Set());
 
-  const toggleFemale = (id) => setExpandedFemale(prev => {
+  const toggleOffTree = (id) => setExpandedOffTree(prev => {
     const next = new Set(prev);
     next.has(id) ? next.delete(id) : next.add(id);
     return next;
   });
 
   const renderNode = (m, showAddChild = false) => {
-    const offTreeChildren = getOffTreeChildren(m, members);
-    const isExpanded = expandedFemale.has(m.id);
-    const isFemale = m.gender === "female";
+    // Off-tree djeca: za muške glavnog stabla = nema ih, za ostale = svi bez muškog roditelja u stablu
+    const offTreeKids = getOffTreeChildren(m, members);
+    const isExpanded  = expandedOffTree.has(m.id);
 
     return (
       <div
@@ -167,7 +170,7 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
         className={`member-node ${m.gender}${selected?.id === m.id ? " sel" : ""}${m.featured ? " featured" : ""}`}
         onClick={() => {
           onSelect(m);
-          if (isFemale && offTreeChildren.length > 0) toggleFemale(m.id);
+          if (offTreeKids.length > 0) toggleOffTree(m.id);
         }}
       >
         {m.featured && <span className="node-featured-badge" title="Истакнути члан">★</span>}
@@ -180,9 +183,9 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
             {m.generational_line}. кољено
           </div>
         )}
-        {offTreeChildren.length > 0 && (
+        {offTreeKids.length > 0 && (
           <div className="node-hidden-children" title="Кликните за приказ дјеце">
-            {isExpanded ? "▲" : "▼"} {offTreeChildren.length} ♀
+            {isExpanded ? "▲" : "▼"} {offTreeKids.length}
           </div>
         )}
         <div className="node-actions">
@@ -203,7 +206,7 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
   };
 
   const renderOffTree = (m) => {
-    if (!expandedFemale.has(m.id)) return null;
+    if (!expandedOffTree.has(m.id)) return null;
     return (
       <OffTreeSubtree
         member={m}
@@ -213,6 +216,7 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
         isAdmin={isAdmin}
         onEdit={onEdit}
         depth={0}
+        isDeep={false}
       />
     );
   };
