@@ -104,24 +104,63 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
     const ctx = canvas.getContext("2d");
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
-    const totalW = inner.scrollWidth, totalH = inner.scrollHeight;
+
+    // Scrollabilna povrsina = sve sto main moze da scrolluje
+    const totalW = main.scrollWidth;
+    const totalH = main.scrollHeight;
     if (!totalW || !totalH) return;
-    const rx = W / totalW, ry = H / totalH;
+
+    const rx = W / totalW;
+    const ry = H / totalH;
+
+    // Cvorovi: pozicija u scroll koordinatama
     members.forEach(m => {
       const el = inner.querySelector(`[data-member-id="${m.id}"]`);
       if (!el) return;
-      const r = el.getBoundingClientRect(), i = inner.getBoundingClientRect();
-      const x = ((r.left - i.left + main.scrollLeft) / scale) * rx;
-      const y = ((r.top  - i.top  + main.scrollTop ) / scale) * ry;
+      const r = el.getBoundingClientRect();
+      const mainRect = main.getBoundingClientRect();
+      // Pozicija u scroll prostoru
+      const nodeScrollX = r.left - mainRect.left + main.scrollLeft;
+      const nodeScrollY = r.top  - mainRect.top  + main.scrollTop;
       ctx.fillStyle = m.gender === "male" ? "#4a7fa8" : "#b06080";
-      ctx.fillRect(x * scale, y * scale, Math.max(3, 8 * rx * scale), Math.max(2, 5 * ry * scale));
+      ctx.fillRect(
+        nodeScrollX * rx,
+        nodeScrollY * ry,
+        Math.max(4, r.width  * rx),
+        Math.max(3, r.height * ry)
+      );
     });
-    const vx = main.scrollLeft * rx, vy = main.scrollTop * ry;
-    const vw = main.clientWidth * rx, vh = main.clientHeight * ry;
-    ctx.strokeStyle = "rgba(200,150,62,0.8)"; ctx.lineWidth = 1.5;
+
+    // Viewport pravougaonik
+    const vx = main.scrollLeft * rx;
+    const vy = main.scrollTop  * ry;
+    const vw = main.clientWidth  * rx;
+    const vh = main.clientHeight * ry;
+    ctx.strokeStyle = "rgba(200,150,62,0.9)"; ctx.lineWidth = 1.5;
     ctx.strokeRect(vx, vy, vw, vh);
-    ctx.fillStyle = "rgba(200,150,62,0.06)"; ctx.fillRect(vx, vy, vw, vh);
+    ctx.fillStyle = "rgba(200,150,62,0.1)"; ctx.fillRect(vx, vy, vw, vh);
   }, [members, scale]);
+
+  // Scroll to root node on mount and mode change
+  const scrollToRoot = useCallback(() => {
+    const main = canvasRef.current;
+    const inner = innerRef.current;
+    if (!main || !inner) return;
+    // Find first root node
+    const firstNode = inner.querySelector("[data-member-id]");
+    if (!firstNode) return;
+    const mainRect = main.getBoundingClientRect();
+    const nodeRect = firstNode.getBoundingClientRect();
+    // We want the root visible near top-left with some padding
+    const targetScrollLeft = (nodeRect.left - mainRect.left + main.scrollLeft) - 60;
+    const targetScrollTop  = (nodeRect.top  - mainRect.top  + main.scrollTop)  - 60;
+    main.scrollTo({ left: Math.max(0, targetScrollLeft), top: Math.max(0, targetScrollTop), behavior: "smooth" });
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(scrollToRoot, 200);
+    return () => clearTimeout(t);
+  }, [horizMode, members.length, scrollToRoot]);
 
   useEffect(() => {
     const main = canvasRef.current;
