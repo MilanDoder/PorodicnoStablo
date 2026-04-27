@@ -17,7 +17,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
 
   const [f, setF] = useState(member || {
     first_name: "", last_name: FAMILY_SURNAME, birth_year: "", death_year: "",
-    gender: "male", spouse_name: "", notes: "", parent_ids: [], generational_line: null,
+    gender: "male", notes: "", parent_ids: [], generational_line: null,
     featured: false, featured_note: "",
   });
   const [childIds, setChildIds] = useState(existingChildIds);
@@ -57,15 +57,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
                 <option value="female">Женски</option>
               </select>
             </div>
-            <div className="form-field">
-              <label className="form-label">Супружник</label>
-              <input
-                className="form-input"
-                value={f.spouse_name || ""}
-                onChange={e => set("spouse_name", e.target.value)}
-                placeholder="Ime и презиме супружника"
-              />
-            </div>
+
             <div className="form-field">
               <label className="form-label">Год. рођења</label>
               <input className="form-input" type="number" value={f.birth_year || ""} onChange={e => set("birth_year", e.target.value || null)} placeholder="нпр. 1920" />
