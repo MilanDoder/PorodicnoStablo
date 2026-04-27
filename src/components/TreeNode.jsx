@@ -33,16 +33,37 @@ function subtreeWidth(member, members) {
   return Math.max(selfWidth, childrenWidth);
 }
 
-// Sva djeca nekog člana koja nisu u glavnom stablu (bez muškog roditelja u stablu)
+// Djeca koja NISU u glavnom stablu — nemaju muškog roditelja koji je u stablu
 function getOffTreeChildren(member, members) {
   return members.filter(c => (c.parent_ids || []).includes(member.id) && !hasVisibleMaleParent(c, members));
 }
 
+// Set svih off-tree clanova (rekurzivno) — za provjeru tokom rekurzije
+function buildOffTreeSet(members) {
+  const roots = new Set(
+    members
+      .filter(m => !(m.parent_ids || []).some(pid => members.find(x => x.id === pid)))
+      .map(m => m.id)
+  );
+  // Off-tree su svi koji nemaju muškog roditelja u glavnom stablu
+  return new Set(members.filter(m => !hasVisibleMaleParent(m, members) && !roots.has(m.id)).map(m => m.id));
+}
+
+// Djeca nekog off-tree clana — sva direktna djeca (bez obzira na pol)
+// jer je roditelj vec off-tree, pa i njegova djeca jesu
+function getOffTreeChildrenDeep(member, members) {
+  return members.filter(c => (c.parent_ids || []).includes(member.id));
+}
+
 // Rekurzivna komponenta za off-tree podstablo
-function OffTreeSubtree({ member, members, selected, onSelect, isAdmin, onEdit, depth = 0 }) {
+function OffTreeSubtree({ member, members, selected, onSelect, isAdmin, onEdit, depth = 0, isDeep = false }) {
   const [expanded, setExpanded] = useState(new Set());
 
-  const children = getOffTreeChildren(member, members);
+  // Na prvom nivou (direktna djeca zenskog clana stabla): samo off-tree
+  // Na dubljim nivoima (djeca off-tree clanova): SVA djeca
+  const children = isDeep
+    ? getOffTreeChildrenDeep(member, members)
+    : getOffTreeChildren(member, members);
 
   const toggle = (id) => setExpanded(prev => {
     const next = new Set(prev);
@@ -59,7 +80,9 @@ function OffTreeSubtree({ member, members, selected, onSelect, isAdmin, onEdit, 
       </div>
       <div className="female-children-list">
         {children.map(child => {
-          const grandchildren = getOffTreeChildren(child, members);
+          const grandchildren = isDeep
+            ? getOffTreeChildrenDeep(child, members)
+            : getOffTreeChildren(child, members);
           const isOpen = expanded.has(child.id);
 
           return (
@@ -111,6 +134,7 @@ function OffTreeSubtree({ member, members, selected, onSelect, isAdmin, onEdit, 
                   isAdmin={isAdmin}
                   onEdit={onEdit}
                   depth={depth + 1}
+                  isDeep={true}
                 />
               )}
             </div>
