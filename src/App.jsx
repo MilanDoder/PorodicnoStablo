@@ -38,6 +38,7 @@ export default function App() {
   const [editMember, setEditMember]     = useState(null);
   const [showModal, setShowModal]       = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [treeKey,       setTreeKey]       = useState(0);
   const initialized                     = useRef(false);
 
   const isAdmin = user?.profile?.role === "admin";
@@ -268,7 +269,7 @@ useEffect(() => {
         </div>
         <nav className="sidebar-nav">
           {nav.map(n => (
-            <button key={n.id} className={`nav-item${view === n.id ? " active" : ""}`} onClick={() => setView(n.id)}>
+            <button key={n.id} className={`nav-item${view === n.id ? " active" : ""}`} onClick={() => { setView(n.id); if (n.id === "tree") setTreeKey(k => k + 1); }}>
               <Icon name={n.icon} size={15} />{n.label}
               {n.badge && <span className="nav-badge">{n.badge}</span>}
             </button>
@@ -338,7 +339,7 @@ useEffect(() => {
                     </div>
                   ))}
                 </div>
-                <TreeView members={members} isAdmin={isAdmin} user={user} onEdit={openModal} onSaveMember={handleSaveMember} onDelete={handleDelete} selected={selected} onSelect={setSelected} />
+                <TreeView key={treeKey} members={members} isAdmin={isAdmin} user={user} onEdit={openModal} onSaveMember={handleSaveMember} onDelete={handleDelete} selected={selected} onSelect={setSelected} />
               </>
             );
           })()}
