@@ -147,7 +147,7 @@ body { font-family: 'Josefin Sans', sans-serif; background: var(--cream); color:
 .dp-person-chip:hover svg { opacity: 1; }
 
 /* ── MINI-MAPA ── */
-.minimap-wrap { position: absolute; bottom: 1rem; right: 270px; background: rgba(255,255,255,0.92); border: 1px solid rgba(200,150,62,.3); box-shadow: 0 2px 12px rgba(26,16,8,.12); padding: .35rem .45rem .4rem; z-index: 20; user-select: none; }
+.minimap-wrap { position: absolute; bottom: 1rem; left: 1rem; background: rgba(255,255,255,0.92); border: 1px solid rgba(200,150,62,.3); box-shadow: 0 2px 12px rgba(26,16,8,.12); padding: .35rem .45rem .4rem; z-index: 20; user-select: none; }
 .minimap-label { font-size: .52rem; letter-spacing: .1em; text-transform: uppercase; color: var(--gold-dark); margin-bottom: .25rem; }
 .minimap-canvas { display: block; cursor: crosshair; background: var(--cream); border: 1px solid rgba(200,150,62,.15); }
 
