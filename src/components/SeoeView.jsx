@@ -11,16 +11,19 @@ function fileToBase64(file) {
   });
 }
 
-// ── Forma za dodavanje slike ───────────────────────────────────────────────
-function AddImageForm({ onSaved, onClose }) {
-  const [title,   setTitle]   = useState("");
-  const [year,    setYear]    = useState("");
-  const [desc,    setDesc]    = useState("");
-  const [imgData, setImgData] = useState(null);
-  const [imgType, setImgType] = useState("image/jpeg");
-  const [preview, setPreview] = useState(null);
-  const [saving,  setSaving]  = useState(false);
-  const [error,   setError]   = useState("");
+// ── Forma za dodavanje i editovanje ───────────────────────────────────────
+function ImageForm({ item, onSaved, onClose }) {
+  const isEdit = !!item;
+  const [title,   setTitle]   = useState(item?.title || "");
+  const [year,    setYear]    = useState(item?.year || "");
+  const [desc,    setDesc]    = useState(item?.description || "");
+  const [imgData, setImgData] = useState(item?.image_data || null);
+  const [imgType, setImgType] = useState(item?.image_type || "image/jpeg");
+  const [preview, setPreview] = useState(
+    item?.image_data ? `data:${item.image_type};base64,${item.image_data}` : null
+  );
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState("");
   const fileRef = useRef();
 
   const handleFile = async (e) => {
@@ -35,15 +38,18 @@ function AddImageForm({ onSaved, onClose }) {
   };
 
   const handleSave = async () => {
-    if (!title.trim() || !imgData || !year) { setError("Наслов, година и слика су обавезни"); return; }
+    if (!title.trim() || !year || !imgData) { setError("Наслов, година и слика су обавезни"); return; }
     setSaving(true);
-    const { error: e } = await supabase.from("seobe").insert({
+    const payload = {
       title: title.trim(),
       description: desc || null,
       year: parseInt(year),
       image_data: imgData,
       image_type: imgType,
-    });
+    };
+    const { error: e } = isEdit
+      ? await supabase.from("seobe").update(payload).eq("id", item.id)
+      : await supabase.from("seobe").insert(payload);
     setSaving(false);
     if (e) { setError("Грешка: " + e.message); return; }
     onSaved();
@@ -53,20 +59,21 @@ function AddImageForm({ onSaved, onClose }) {
     <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ width: 520 }}>
         <div className="modal-head">
-          <span className="modal-title">Додај слику сеобе</span>
+          <span className="modal-title">{isEdit ? "Уреди слику сеобе" : "Додај слику сеобе"}</span>
           <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
         </div>
         <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: ".85rem" }}>
           {error && <div className="media-error">{error}</div>}
 
-          <div className="form-field">
-            <label className="form-label">Наслов *</label>
-            <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="нпр. Прва сеоба у Херцеговину" />
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Година *</label>
-            <input className="form-input" type="number" value={year} onChange={e => setYear(e.target.value)} placeholder="нпр. 1880" />
+          <div className="form-grid">
+            <div className="form-field">
+              <label className="form-label">Наслов *</label>
+              <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="нпр. Прва сеоба у Херцеговину" autoFocus />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Година *</label>
+              <input className="form-input" type="number" value={year} onChange={e => setYear(e.target.value)} placeholder="нпр. 1880" />
+            </div>
           </div>
 
           <div className="form-field">
@@ -75,18 +82,20 @@ function AddImageForm({ onSaved, onClose }) {
           </div>
 
           <div className="form-field">
-            <label className="form-label">Слика *</label>
+            <label className="form-label">Слика {isEdit ? "(оставите празно да задржите постојећу)" : "*"}</label>
             <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
             <button className="btn btn-ghost btn-sm" onClick={() => fileRef.current.click()}>
-              <Icon name="image" size={13} /> Одабери слику
+              <Icon name="image" size={13} /> {isEdit ? "Замијени слику" : "Одабери слику"}
             </button>
-            {preview && <img src={preview} alt="preview" className="media-preview" />}
+            {preview && (
+              <img src={preview} alt="preview" className="media-preview" style={{ maxHeight: 160, objectFit: "contain" }} />
+            )}
           </div>
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" onClick={onClose}>Откажи</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? <><Icon name="spinner" size={14} />Чување...</> : "Додај слику"}
+            {saving ? <><Icon name="spinner" size={14} />Чување...</> : (isEdit ? "Сачувај измјене" : "Додај слику")}
           </button>
         </div>
       </div>
@@ -94,11 +103,12 @@ function AddImageForm({ onSaved, onClose }) {
   );
 }
 
-// ── Glavni prikaz slojeva ─────────────────────────────────────────────────
+// ── Glavni prikaz ─────────────────────────────────────────────────────────
 export default function SeoeView({ isAdmin }) {
   const [items,       setItems]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [showForm,    setShowForm]    = useState(false);
+  const [editItem,    setEditItem]    = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   const load = async () => {
@@ -106,7 +116,6 @@ export default function SeoeView({ isAdmin }) {
     const { data } = await supabase.from("seobe").select("*").order("year", { ascending: true });
     const rows = data || [];
     setItems(rows);
-    // Defaultno sve izabrane
     setSelectedIds(new Set(rows.map(r => r.id)));
     setLoading(false);
   };
@@ -119,32 +128,20 @@ export default function SeoeView({ isAdmin }) {
     return next;
   });
 
-  const handleDelete = async (id) => {
-    if (!confirm("Obrisati ovu sliku?")) return;
+  const handleDelete = async (id, title) => {
+    if (!confirm(`Obrisati "${title}"?`)) return;
     await supabase.from("seobe").delete().eq("id", id);
     load();
   };
 
-  // Samo selektovane, sortirane od najstarije ka najnovijoj
   const visible = items.filter(i => selectedIds.has(i.id));
 
-  // Opacity logika: najstarija = 1.0, svaka novija je providnija
-  // Najmlađa ima opacity 0.35 ako ih ima više, inače 1.0
   const getOpacity = (idx, total) => {
     if (total === 1) return 1;
-    const MIN = 0.28;
-    const MAX = 1.0;
-    // idx 0 = najstarija (puna), idx total-1 = najnovija (najtransparentnija)
-    return MAX - (MAX - MIN) * (idx / (total - 1));
+    return 1.0 - (1.0 - 0.28) * (idx / (total - 1));
   };
 
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <Icon name="spinner" size={28} />
-      </div>
-    );
-  }
+  if (loading) return <div className="loading-screen"><Icon name="spinner" size={28} /></div>;
 
   return (
     <div className="gallery-wrap" style={{ display: "flex", flexDirection: "column", gap: 0, padding: 0, overflow: "hidden", height: "100%" }}>
@@ -158,34 +155,25 @@ export default function SeoeView({ isAdmin }) {
         <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "1.1rem", color: "var(--ink)", marginRight: ".5rem" }}>
           Сеобе
         </div>
-
-        {/* Godina filteri */}
         <div style={{ display: "flex", gap: ".35rem", flexWrap: "wrap", flex: 1 }}>
           {items.map(item => {
             const on = selectedIds.has(item.id);
             return (
-              <button
-                key={item.id}
-                onClick={() => toggleId(item.id)}
-                style={{
-                  padding: ".25rem .65rem",
-                  fontSize: ".65rem", fontFamily: "'Josefin Sans',sans-serif",
-                  letterSpacing: ".08em", textTransform: "uppercase",
-                  border: `1px solid ${on ? "var(--gold)" : "rgba(200,150,62,.25)"}`,
-                  background: on ? "rgba(200,150,62,.12)" : "white",
-                  color: on ? "var(--gold-dark)" : "#aaa",
-                  cursor: "pointer", transition: "all .15s",
-                }}
-                title={item.title}
-              >
+              <button key={item.id} onClick={() => toggleId(item.id)} title={item.title} style={{
+                padding: ".25rem .65rem", fontSize: ".65rem", fontFamily: "'Josefin Sans',sans-serif",
+                letterSpacing: ".08em", textTransform: "uppercase",
+                border: `1px solid ${on ? "var(--gold)" : "rgba(200,150,62,.25)"}`,
+                background: on ? "rgba(200,150,62,.12)" : "white",
+                color: on ? "var(--gold-dark)" : "#aaa",
+                cursor: "pointer", transition: "all .15s",
+              }}>
                 {item.year}.
               </button>
             );
           })}
         </div>
-
         {isAdmin && (
-          <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
+          <button className="btn btn-primary btn-sm" onClick={() => { setEditItem(null); setShowForm(true); }}>
             <Icon name="plus" size={13} /> Додај слику
           </button>
         )}
@@ -201,13 +189,11 @@ export default function SeoeView({ isAdmin }) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
-            {/* Legenda slojeva */}
+            {/* Legenda */}
             <div style={{
-              display: "flex", gap: ".75rem", flexWrap: "wrap",
-              padding: ".6rem 1rem", background: "white",
-              border: "1px solid rgba(200,150,62,.18)",
-              fontSize: ".65rem", color: "#777",
-              letterSpacing: ".06em", alignItems: "center",
+              display: "flex", gap: ".75rem", flexWrap: "wrap", padding: ".6rem 1rem",
+              background: "white", border: "1px solid rgba(200,150,62,.18)",
+              fontSize: ".65rem", color: "#777", letterSpacing: ".06em", alignItems: "center",
             }}>
               <span style={{ color: "var(--gold-dark)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".1em" }}>Слојеви →</span>
               {visible.map((item, idx) => (
@@ -222,31 +208,22 @@ export default function SeoeView({ isAdmin }) {
               ))}
             </div>
 
-            {/* Složeni slojevi — apsolutno pozicionirani jedan preko drugog */}
+            {/* Slojevi */}
             <div style={{ position: "relative", width: "100%" }}>
-              {/* Container visina = visina prve (pune) slike */}
               {visible.map((item, idx) => {
                 const opacity = getOpacity(idx, visible.length);
                 const isOldest = idx === 0;
-
                 return (
-                  <div
-                    key={item.id}
-                    style={{
-                      position: isOldest ? "relative" : "absolute",
-                      top: 0, left: 0, width: "100%",
-                      opacity,
-                      zIndex: idx + 1,
-                      mixBlendMode: idx === 0 ? "normal" : "multiply",
-                    }}
-                  >
+                  <div key={item.id} style={{
+                    position: isOldest ? "relative" : "absolute",
+                    top: 0, left: 0, width: "100%",
+                    opacity, zIndex: idx + 1,
+                    mixBlendMode: idx === 0 ? "normal" : "multiply",
+                  }}>
                     <div style={{
-                      background: "white",
-                      border: "1px solid rgba(200,150,62,.2)",
-                      boxShadow: `0 2px 12px rgba(26,16,8,${0.06 * opacity})`,
-                      overflow: "hidden",
+                      background: "white", border: "1px solid rgba(200,150,62,.2)",
+                      boxShadow: `0 2px 12px rgba(26,16,8,${0.06 * opacity})`, overflow: "hidden",
                     }}>
-                      {/* Godina header */}
                       <div style={{
                         padding: ".4rem .9rem",
                         background: `rgba(26,16,8,${0.85 * opacity})`,
@@ -261,16 +238,24 @@ export default function SeoeView({ isAdmin }) {
                           )}
                         </div>
                         {isAdmin && (
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            style={{ background: "none", border: "none", color: "rgba(200,150,62,.4)", cursor: "pointer", padding: ".2rem" }}
-                            title="Obriši"
-                          >
-                            <Icon name="close" size={14} />
-                          </button>
+                          <div style={{ display: "flex", gap: ".3rem" }}>
+                            <button
+                              onClick={() => { setEditItem(item); setShowForm(true); }}
+                              style={{ background: "none", border: "none", color: "rgba(200,150,62,.6)", cursor: "pointer", padding: ".2rem" }}
+                              title="Уреди"
+                            >
+                              <Icon name="edit" size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(item.id, item.title)}
+                              style={{ background: "none", border: "none", color: "rgba(200,150,62,.4)", cursor: "pointer", padding: ".2rem" }}
+                              title="Обриши"
+                            >
+                              <Icon name="close" size={14} />
+                            </button>
+                          </div>
                         )}
                       </div>
-
                       <img
                         src={`data:${item.image_type || "image/jpeg"};base64,${item.image_data}`}
                         alt={item.title}
@@ -287,9 +272,10 @@ export default function SeoeView({ isAdmin }) {
       </div>
 
       {showForm && (
-        <AddImageForm
-          onSaved={() => { setShowForm(false); load(); }}
-          onClose={() => setShowForm(false)}
+        <ImageForm
+          item={editItem}
+          onSaved={() => { setShowForm(false); setEditItem(null); load(); }}
+          onClose={() => { setShowForm(false); setEditItem(null); }}
         />
       )}
     </div>
