@@ -138,7 +138,7 @@ export default function SeoeView({ isAdmin }) {
 
   const getOpacity = (idx, total) => {
     if (total === 1) return 1;
-    return 1.0 - (1.0 - 0.28) * (idx / (total - 1));
+    return 1.0 - (1.0 - 0.65) * (idx / (total - 1));
   };
 
   if (loading) return <div className="loading-screen"><Icon name="spinner" size={28} /></div>;
