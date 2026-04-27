@@ -33,19 +33,108 @@ function subtreeWidth(member, members) {
   return Math.max(selfWidth, childrenWidth);
 }
 
+// Sva djeca nekog člana koja nisu u glavnom stablu (bez muškog roditelja u stablu)
+function getOffTreeChildren(member, members) {
+  return members.filter(c => (c.parent_ids || []).includes(member.id) && !hasVisibleMaleParent(c, members));
+}
+
+// Rekurzivna komponenta za off-tree podstablo
+function OffTreeSubtree({ member, members, selected, onSelect, isAdmin, onEdit, depth = 0 }) {
+  const [expanded, setExpanded] = useState(new Set());
+
+  const children = getOffTreeChildren(member, members);
+
+  const toggle = (id) => setExpanded(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  if (children.length === 0) return null;
+
+  return (
+    <div className="female-children-panel" style={{ marginTop: depth === 0 ? ".5rem" : ".35rem", marginLeft: depth * 12 }}>
+      <div className="female-children-label">
+        Дјеца: {member.first_name} {member.last_name}
+      </div>
+      <div className="female-children-list">
+        {children.map(child => {
+          const grandchildren = getOffTreeChildren(child, members);
+          const isOpen = expanded.has(child.id);
+
+          return (
+            <div key={child.id} style={{ width: "100%" }}>
+              <div
+                className={`female-child-card ${child.gender}${selected?.id === child.id ? " sel" : ""}`}
+                data-member-id={child.id}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: ".4rem", textAlign: "left", padding: ".35rem .5rem" }}
+                onClick={e => { e.stopPropagation(); onSelect(child); }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div className="female-child-name">{child.first_name} {child.last_name}</div>
+                  {child.birth_year && (
+                    <div className="female-child-note">{child.birth_year}{child.death_year ? `–${child.death_year}` : ""}</div>
+                  )}
+                  {child.generational_line && (
+                    <div className="female-child-note" style={{ color: "var(--gold-dark)", fontWeight: 600 }}>{child.generational_line}. кољено</div>
+                  )}
+                </div>
+
+                {grandchildren.length > 0 && (
+                  <button
+                    className="node-hidden-children"
+                    style={{ margin: 0, cursor: "pointer", border: "none", background: "none", padding: ".1rem .3rem", flexShrink: 0 }}
+                    title="Прикажи дјецу"
+                    onClick={e => { e.stopPropagation(); toggle(child.id); }}
+                  >
+                    {isOpen ? "▲" : "▼"} {grandchildren.length}
+                  </button>
+                )}
+
+                {isAdmin && (
+                  <button
+                    className="node-act"
+                    style={{ flexShrink: 0 }}
+                    onClick={e => { e.stopPropagation(); onEdit(child); }}
+                  >
+                    <Icon name="edit" size={9} />
+                  </button>
+                )}
+              </div>
+
+              {isOpen && (
+                <OffTreeSubtree
+                  member={child}
+                  members={members}
+                  selected={selected}
+                  onSelect={onSelect}
+                  isAdmin={isAdmin}
+                  onEdit={onEdit}
+                  depth={depth + 1}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function TreeNode({ member, members, selected, onSelect, isAdmin, onEdit, onAddChild, onRequestChild }) {
   const children = getChildren(member, members);
   const spouse   = members.find(m => m.id === member.spouse_id);
-  const [expandedFemale, setExpandedFemale] = useState(null);
+  const [expandedFemale, setExpandedFemale] = useState(new Set());
 
-  const getHiddenChildren = (m) => members.filter(c => {
-    if (!(c.parent_ids || []).includes(m.id)) return false;
-    return !hasVisibleMaleParent(c, members);
+  const toggleFemale = (id) => setExpandedFemale(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
   });
 
   const renderNode = (m, showAddChild = false) => {
-    const hiddenChildren = getHiddenChildren(m);
-    const isExpanded = expandedFemale === m.id;
+    const offTreeChildren = getOffTreeChildren(m, members);
+    const isExpanded = expandedFemale.has(m.id);
     const isFemale = m.gender === "female";
 
     return (
@@ -54,9 +143,7 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
         className={`member-node ${m.gender}${selected?.id === m.id ? " sel" : ""}${m.featured ? " featured" : ""}`}
         onClick={() => {
           onSelect(m);
-          if (isFemale && hiddenChildren.length > 0) {
-            setExpandedFemale(isExpanded ? null : m.id);
-          }
+          if (isFemale && offTreeChildren.length > 0) toggleFemale(m.id);
         }}
       >
         {m.featured && <span className="node-featured-badge" title="Истакнути члан">★</span>}
@@ -69,9 +156,9 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
             {m.generational_line}. кољено
           </div>
         )}
-        {hiddenChildren.length > 0 && (
+        {offTreeChildren.length > 0 && (
           <div className="node-hidden-children" title="Кликните за приказ дјеце">
-            {isExpanded ? "▲" : "▼"} {hiddenChildren.length} ♀
+            {isExpanded ? "▲" : "▼"} {offTreeChildren.length} ♀
           </div>
         )}
         <div className="node-actions">
@@ -91,39 +178,18 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
     );
   };
 
-  const renderFemaleChildren = (m) => {
-    const hiddenChildren = getHiddenChildren(m);
-    if (expandedFemale !== m.id || hiddenChildren.length === 0) return null;
+  const renderOffTree = (m) => {
+    if (!expandedFemale.has(m.id)) return null;
     return (
-      <div className="female-children-panel">
-        <div className="female-children-label">
-          Дјеца: {m.first_name} {m.last_name}
-        </div>
-        <div className="female-children-list">
-          {hiddenChildren.map(child => (
-            <div
-              key={child.id}
-              className={`female-child-card ${child.gender}${selected?.id === child.id ? " sel" : ""}`}
-              data-member-id={child.id}
-              onClick={e => { e.stopPropagation(); onSelect(child); }}
-            >
-              <div className="female-child-name">{child.first_name} {child.last_name}</div>
-              {child.birth_year && (
-                <div className="female-child-note">{child.birth_year}{child.death_year ? `–${child.death_year}` : ""}</div>
-              )}
-              {isAdmin && (
-                <button
-                  className="node-act"
-                  style={{ position: "absolute", top: 2, right: 2, opacity: 1 }}
-                  onClick={e => { e.stopPropagation(); onEdit(child); }}
-                >
-                  <Icon name="edit" size={9} />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      <OffTreeSubtree
+        member={m}
+        members={members}
+        selected={selected}
+        onSelect={onSelect}
+        isAdmin={isAdmin}
+        onEdit={onEdit}
+        depth={0}
+      />
     );
   };
 
@@ -134,8 +200,8 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
           {renderNode(member, true)}
           {spouse && <><span className="heart-sep">❤</span>{renderNode(spouse)}</>}
         </div>
-        {renderFemaleChildren(member)}
-        {spouse && renderFemaleChildren(spouse)}
+        {renderOffTree(member)}
+        {spouse && renderOffTree(spouse)}
       </div>
     );
   }
@@ -149,8 +215,8 @@ export default function TreeNode({ member, members, selected, onSelect, isAdmin,
         {renderNode(member, true)}
         {spouse && <><span className="heart-sep">❤</span>{renderNode(spouse)}</>}
       </div>
-      {renderFemaleChildren(member)}
-      {spouse && renderFemaleChildren(spouse)}
+      {renderOffTree(member)}
+      {spouse && renderOffTree(spouse)}
 
       <div className="vert-line" style={{ height: 20 }} />
 
