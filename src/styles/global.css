@@ -352,8 +352,8 @@ body { font-family: 'Josefin Sans', sans-serif; background: var(--cream); color:
 /* ── Ženski panel djece ─────────────────────────────────────────────────── */
 .female-children-panel { margin-top: .5rem; background: rgba(176,96,128,.06); border: 1px dashed rgba(176,96,128,.35); padding: .55rem .6rem .6rem; max-width: 340px; animation: fadeUp .22s ease; position: relative; z-index: 4; }
 .female-children-label { font-size: .52rem; letter-spacing: .1em; text-transform: uppercase; color: var(--female-border); margin-bottom: .45rem; opacity: .8; }
-.female-children-list { display: flex; flex-wrap: wrap; gap: .4rem; }
-.female-child-card { position: relative; width: 100px; padding: .4rem .35rem; border: 1.5px solid; text-align: center; cursor: pointer; transition: all .2s; opacity: .62; filter: saturate(.55); box-shadow: 0 1px 4px rgba(26,16,8,.07); background: white; }
+.female-children-list { display: flex; flex-direction: column; gap: .3rem; }
+.female-child-card { position: relative; width: 100%; padding: .35rem .5rem; border: 1.5px solid; cursor: pointer; transition: all .2s; opacity: .68; filter: saturate(.6); box-shadow: 0 1px 4px rgba(26,16,8,.07); background: white; border-radius: 2px; }
 .female-child-card.male { border-color: var(--male-border); background: var(--male-bg); }
 .female-child-card.female { border-color: var(--female-border); background: var(--female-bg); }
 .female-child-card:hover { opacity: .88; filter: saturate(.85); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(26,16,8,.13); }
