@@ -300,7 +300,7 @@ useEffect(() => {
       </aside>
 
       <div className="main-content">
-        {isAdmin && <AnnouncementBanner />}
+        <AnnouncementBanner />
         <div className="topbar">
           <div className="topbar-title">{TOPBAR_TITLES[view] || ""}</div>
           <div className="topbar-actions">
