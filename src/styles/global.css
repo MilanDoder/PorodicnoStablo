@@ -61,6 +61,69 @@ body { font-family: 'Josefin Sans', sans-serif; background: var(--cream); color:
 .logout-btn { display: flex; align-items: center; gap: .5rem; color: rgba(255,255,255,.3); font-size: .65rem; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; background: none; border: none; transition: color .2s; }
 .logout-btn:hover { color: var(--rust); }
 .main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+/* ── Announcement Banner ───────────────────────────────────────────────────── */
+.announcement-banner {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(90deg, #1a1008 0%, #2d1e0a 40%, #1a1008 100%);
+  color: #e8b85a;
+  height: 32px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(200,150,62,.3);
+  cursor: default;
+  user-select: none;
+}
+.announcement-label {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  padding: 0 .9rem;
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #c8963e;
+  border-right: 1px solid rgba(200,150,62,.25);
+  height: 100%;
+  background: rgba(0,0,0,.15);
+  flex-shrink: 0;
+}
+.announcement-icon { font-size: .85rem; }
+.announcement-track {
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+.announcement-marquee {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  animation: marquee-scroll 40s linear infinite;
+  will-change: transform;
+}
+.announcement-marquee.paused { animation-play-state: paused; }
+.announcement-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .82rem;
+  color: #e8c878;
+  letter-spacing: .02em;
+  padding: 0 1.5rem;
+}
+.announcement-sep {
+  color: #c8963e;
+  font-size: .7rem;
+  opacity: .6;
+}
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 .topbar { padding: .8rem 1.5rem; background: white; border-bottom: 1px solid rgba(200,150,62,.15); display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(26,16,8,.06); flex-shrink: 0; }
 .topbar-title { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; color: var(--ink); }
 .topbar-actions { display: flex; gap: .5rem; align-items: center; }
