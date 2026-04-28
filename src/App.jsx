@@ -5,6 +5,7 @@ import Icon from "./components/Icon";
 import LoginPage from "./components/LoginPage";
 import TreeView from "./components/TreeView";
 import ListView from "./components/ListView";
+import AnnouncementBanner from "./components/AnnouncementBanner";
 import MemberModal from "./components/MemberModal";
 
 const AdminPanel      = lazy(() => import("./components/AdminPanel"));
@@ -299,6 +300,7 @@ useEffect(() => {
       </aside>
 
       <div className="main-content">
+        {isAdmin && <AnnouncementBanner />}
         <div className="topbar">
           <div className="topbar-title">{TOPBAR_TITLES[view] || ""}</div>
           <div className="topbar-actions">
