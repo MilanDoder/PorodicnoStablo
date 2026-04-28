@@ -1,62 +1,68 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 
-const today = () => new Date().toISOString().split("T")[0];
+const todayStr = () => new Date().toISOString().split("T")[0];
+const EMPTY    = { message: "", expires_at: "" };
 
-const EMPTY_FORM = { message: "", expires_at: "" };
+function formatDate(d) {
+  if (!d) return "—";
+  const [y, m, day] = d.split("-");
+  return `${day}.${m}.${y}.`;
+}
 
 export default function AnnouncementsAdmin({ currentUser }) {
   const [list, setList]         = useState([]);
-  const [form, setForm]         = useState(EMPTY_FORM);
+  const [form, setForm]         = useState(EMPTY);
   const [editId, setEditId]     = useState(null);
-  const [loading, setLoading]   = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [deleting, setDeleting] = useState(null);
   const [error, setError]       = useState("");
   const [success, setSuccess]   = useState("");
+  const formRef                 = useRef(null);
 
   useEffect(() => { load(); }, []);
 
   const load = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("announcements")
       .select("*")
-      .order("created_at", { ascending: false });
-    if (!error) setList(data || []);
+      .order("expires_at", { ascending: false });
+    setList(data || []);
   };
 
-  const resetForm = () => { setForm(EMPTY_FORM); setEditId(null); setError(""); setSuccess(""); };
+  const reset = () => { setForm(EMPTY); setEditId(null); setError(""); setSuccess(""); };
 
-  const handleSubmit = async () => {
+  const handleSave = async () => {
     setError(""); setSuccess("");
-    if (!form.message.trim())   { setError("Поље порука не сме бити празно."); return; }
-    if (!form.expires_at)       { setError("Одаберите датум истека."); return; }
-    if (form.expires_at < today()) { setError("Датум истека не може бити у прошлости."); return; }
+    if (!form.message.trim()) { setError("Tekst obaveštenja ne sme biti prazan."); return; }
+    if (!form.expires_at)     { setError("Odaberite datum isteka."); return; }
 
-    setLoading(true);
+    setSaving(true);
     try {
+      let result;
       if (editId) {
-        const { error } = await supabase
+        result = await supabase
           .from("announcements")
           .update({ message: form.message.trim(), expires_at: form.expires_at })
           .eq("id", editId);
-        if (error) throw error;
-        setSuccess("Обавештење је ажурирано.");
       } else {
-        const { error } = await supabase
+        result = await supabase
           .from("announcements")
           .insert({
             message:    form.message.trim(),
             expires_at: form.expires_at,
             created_by: currentUser?.id ?? null,
           });
-        if (error) throw error;
-        setSuccess("Обавештење је додато.");
       }
-      resetForm();
+
+      if (result.error) throw result.error;
+      setSuccess(editId ? "Obaveštenje je ažurirano." : "Obaveštenje je dodato.");
+      reset();
       await load();
     } catch (e) {
-      setError(e.message || "Грешка при чувању.");
+      setError(e?.message || e?.details || JSON.stringify(e) || "Greška pri čuvanju.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -64,105 +70,128 @@ export default function AnnouncementsAdmin({ currentUser }) {
     setEditId(ann.id);
     setForm({ message: ann.message, expires_at: ann.expires_at });
     setError(""); setSuccess("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Да ли сте сигурни да желите да обришете ово обавештење?")) return;
-    await supabase.from("announcements").delete().eq("id", id);
+    if (!window.confirm("Obrisati ovo obaveštenje?")) return;
+    setDeleting(id);
+    const result = await supabase.from("announcements").delete().eq("id", id);
+    setDeleting(null);
+    if (result.error) { setError(result.error.message); return; }
+    if (editId === id) reset();
+    setSuccess("Obaveštenje je obrisano.");
     await load();
-    setSuccess("Обавештење је обрисано.");
   };
 
-  const isExpired = (expires_at) => expires_at < today();
+  const active  = list.filter(a => a.expires_at >= todayStr());
+  const expired = list.filter(a => a.expires_at <  todayStr());
 
   return (
-    <div className="admin-wrap">
+    <div className="admin-wrap" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
-      {/* ── Form ── */}
-      <div className="section-title">{editId ? "Измени обавештење" : "Ново обавештење"}</div>
-      <div className="ann-form-box">
-        <div className="ann-form-field">
-          <label className="ann-label">Текст обавештења</label>
-          <textarea
-            className="ann-textarea"
-            rows={3}
-            placeholder="Унесите текст обавештења..."
-            value={form.message}
-            onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-          />
+      {/* FORMA */}
+      <div ref={formRef}>
+        <div className="section-title" style={{ marginBottom: ".75rem" }}>
+          {editId ? "✏️ Izmeni obaveštenje" : "➕ Novo obaveštenje"}
         </div>
-        <div className="ann-form-field">
-          <label className="ann-label">Датум истека</label>
-          <input
-            type="date"
-            className="ann-input"
-            min={today()}
-            value={form.expires_at}
-            onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
-          />
-        </div>
+        <div className="ann-form-box">
+          <div className="ann-form-field">
+            <label className="ann-label">Tekst obaveštenja</label>
+            <textarea
+              className="ann-textarea"
+              rows={3}
+              placeholder="Unesite tekst koji će se prikazivati u traci..."
+              value={form.message}
+              onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+            />
+          </div>
+          <div className="ann-form-field">
+            <label className="ann-label">Datum isteka</label>
+            <input
+              type="date"
+              className="ann-input"
+              value={form.expires_at}
+              onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
+            />
+            <span style={{ fontSize: ".7rem", color: "#aaa" }}>Obaveštenje nestaje posle ovog datuma.</span>
+          </div>
 
-        {error   && <div className="ann-msg ann-msg--error">⚠ {error}</div>}
-        {success && <div className="ann-msg ann-msg--success">✓ {success}</div>}
+          {error   && <div className="ann-msg ann-msg--error">⚠ {error}</div>}
+          {success && <div className="ann-msg ann-msg--success">✓ {success}</div>}
 
-        <div style={{ display: "flex", gap: ".6rem", marginTop: ".5rem" }}>
-          <button
-            className="btn btn-primary"
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? "Чување..." : editId ? "Сачувај измене" : "+ Додај обавештење"}
-          </button>
-          {editId && (
-            <button className="btn btn-ghost" onClick={resetForm}>
-              Одустани
+          <div style={{ display: "flex", gap: ".6rem", marginTop: ".75rem" }}>
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? "Čuvanje..." : editId ? "Sačuvaj izmene" : "Dodaj obaveštenje"}
             </button>
-          )}
+            {editId && <button className="btn btn-ghost" onClick={reset}>Odustani</button>}
+          </div>
         </div>
       </div>
 
-      {/* ── List ── */}
-      <div className="section-title" style={{ marginTop: "1.5rem" }}>
-        Постојећа обавештења
-        <span style={{ fontSize: ".7rem", color: "#aaa", fontFamily: "sans-serif", fontWeight: 400, marginLeft: ".6rem" }}>
-          ({list.length})
-        </span>
-      </div>
-
-      {list.length === 0 ? (
-        <div className="info-box" style={{ color: "#aaa", fontStyle: "italic" }}>
-          Нема обавештења.
+      {/* AKTIVNA */}
+      <div>
+        <div className="section-title" style={{ marginBottom: ".75rem" }}>
+          Aktivna obaveštenja
+          <span className="ann-count ann-count--active">{active.length}</span>
         </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: ".6rem" }}>
-          {list.map(ann => (
-            <div key={ann.id} className={`ann-row${isExpired(ann.expires_at) ? " ann-row--expired" : ""}`}>
-              <div className="ann-row-body">
-                <div className="ann-row-msg">{ann.message}</div>
-                <div className="ann-row-meta">
-                  <span>Креирано: {new Date(ann.created_at).toLocaleDateString("sr-Latn")}</span>
-                  <span className={`ann-expires${isExpired(ann.expires_at) ? " ann-expires--past" : ""}`}>
-                    {isExpired(ann.expires_at) ? "⛔ Истекло" : "⏳ Истиче"}: {ann.expires_at}
-                  </span>
-                </div>
-              </div>
-              <div className="ann-row-actions">
-                <button className="btn btn-ghost" style={{ fontSize: ".7rem", padding: ".3rem .7rem" }} onClick={() => handleEdit(ann)}>
-                  Измени
-                </button>
-                <button
-                  className="btn"
-                  style={{ fontSize: ".7rem", padding: ".3rem .7rem", background: "#fee", color: "#c00", border: "1px solid #fcc" }}
-                  onClick={() => handleDelete(ann.id)}
-                >
-                  Обриши
-                </button>
-              </div>
+        {active.length === 0
+          ? <div className="ann-empty">Nema aktivnih obaveštenja.</div>
+          : <div className="ann-list">
+              {active.map(ann => (
+                <AnnRow key={ann.id} ann={ann} isEditing={editId === ann.id}
+                  deleting={deleting === ann.id} onEdit={() => handleEdit(ann)}
+                  onDelete={() => handleDelete(ann.id)} active />
+              ))}
             </div>
-          ))}
+        }
+      </div>
+
+      {/* ISTEKLA */}
+      {expired.length > 0 && (
+        <div>
+          <div className="section-title" style={{ marginBottom: ".75rem", opacity: .55 }}>
+            Istekla obaveštenja
+            <span className="ann-count ann-count--expired">{expired.length}</span>
+          </div>
+          <div className="ann-list">
+            {expired.map(ann => (
+              <AnnRow key={ann.id} ann={ann} isEditing={editId === ann.id}
+                deleting={deleting === ann.id} onEdit={() => handleEdit(ann)}
+                onDelete={() => handleDelete(ann.id)} active={false} />
+            ))}
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function AnnRow({ ann, isEditing, deleting, onEdit, onDelete, active }) {
+  return (
+    <div className={[
+      "ann-row",
+      !active    ? "ann-row--expired" : "",
+      isEditing  ? "ann-row--editing" : "",
+    ].filter(Boolean).join(" ")}>
+      <div className={`ann-pill ${active ? "ann-pill--active" : "ann-pill--expired"}`}>
+        {active ? "●" : "○"}
+      </div>
+      <div className="ann-row-body">
+        <div className="ann-row-msg">{ann.message}</div>
+        <div className="ann-row-meta">
+          <span>Kreirano: {formatDate(ann.created_at?.split("T")[0])}</span>
+          <span className={active ? "ann-expires" : "ann-expires ann-expires--past"}>
+            {active ? `Ističe: ${formatDate(ann.expires_at)}` : `Isteklo: ${formatDate(ann.expires_at)}`}
+          </span>
+        </div>
+      </div>
+      <div className="ann-row-actions">
+        <button className="ann-btn ann-btn--edit"   onClick={onEdit}   disabled={deleting}>Izmeni</button>
+        <button className="ann-btn ann-btn--delete" onClick={onDelete} disabled={deleting}>
+          {deleting ? "..." : "Obriši"}
+        </button>
+      </div>
     </div>
   );
 }
