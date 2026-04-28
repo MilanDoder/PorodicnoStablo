@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AdminRequestsView from "./AdminRequestsView";
+import AnnouncementsAdmin from "./AnnouncementsAdmin";
 import { FAMILY_NAME_PLURAL, FAMILY_LOCATION } from "../config";
 
 const TAB_STYLE_BASE = {
@@ -23,8 +24,9 @@ export default function AdminPanel({ members, currentUser, onMemberAdded }) {
   ];
 
   const TABS = [
-    { id: "stats",    label: "Статистика" },
-    { id: "requests", label: "Листа захтјева" },
+    { id: "stats",         label: "Статистика" },
+    { id: "requests",      label: "Листа захтјева" },
+    { id: "announcements", label: "Обавештења" },
   ];
 
   return (
@@ -73,6 +75,10 @@ export default function AdminPanel({ members, currentUser, onMemberAdded }) {
 
       {subTab === "requests" && (
         <AdminRequestsView members={members} onMemberAdded={onMemberAdded} />
+      )}
+
+      {subTab === "announcements" && (
+        <AnnouncementsAdmin currentUser={currentUser} />
       )}
     </div>
   );
