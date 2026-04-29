@@ -21,7 +21,13 @@ function StoryModal({ item, onClose }) {
           <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
         </div>
         {item.cover_image && (
-          <img src={`data:${item.image_type || "image/jpeg"};base64,${item.cover_image}`} alt={item.title} className="story-modal-img" />
+          <div style={{ background: "#0d0800", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <img
+              src={`data:${item.image_type || "image/jpeg"};base64,${item.cover_image}`}
+              alt={item.title}
+              style={{ width: "100%", maxHeight: 420, objectFit: "contain", display: "block" }}
+            />
+          </div>
         )}
         <div className="story-modal-body">
           {item.story_date && (
