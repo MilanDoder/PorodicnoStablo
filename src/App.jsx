@@ -49,7 +49,8 @@ export default function App() {
 
   // Briši keš koji nije Supabase auth
   useEffect(() => {
-    Object.keys(localStorage).forEach(k => { if (!k.startsWith('sb-')) localStorage.removeItem(k); });
+    localStorage.clear();
+    // Object.keys(localStorage).forEach(k => { if (!k.startsWith('sb-')) localStorage.removeItem(k); });
   }, []);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
