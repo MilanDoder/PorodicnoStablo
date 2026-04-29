@@ -326,7 +326,7 @@ export default function App() {
               </button>
             )}
             {!isAdmin && (
-              <button className="btn btn-primary" onClick={() => setShowRequestForm(true)}>
+              <button className="btn btn-primary" onClick={() => setShowRequestForm(false)}>
                 <Icon name="plus" size={13} />Предложи члана
               </button>
             )}
