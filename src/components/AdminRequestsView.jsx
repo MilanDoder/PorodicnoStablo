@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
 
-const TYPE_LABELS = { member: "Члан", gallery: "Фотографија", history: "Прича", announcement: "Обавештење" };
-const TYPE_ICONS  = { member: "👤", gallery: "🖼️", history: "📖", announcement: "📢" };
+const TYPE_LABELS = { member: "Нови члан", member_edit: "Измјена члана", gallery: "Фотографија", history: "Прича", announcement: "Обавештење" };
+const TYPE_ICONS  = { member: "👤", member_edit: "✏️", gallery: "🖼️", history: "📖", announcement: "📢" };
 
 export default function AdminRequestsView({ members, onMemberAdded }) {
   const [requests, setRequests]     = useState([]);
@@ -46,6 +46,15 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
             parentIds.map(pid => ({ member_id: newMember.id, parent_id: pid }))
           );
         }
+        onMemberAdded?.();
+      } else if (type === "member_edit") {
+        await supabase.from("members").update({
+          first_name: req.first_name,
+          last_name:  req.last_name,
+          birth_year: req.birth_year,
+          death_year: req.death_year,
+          notes:      req.notes || null,
+        }).eq("id", req.edited_member_id);
         onMemberAdded?.();
       } else if (type === "gallery") {
         await supabase.from("gallery").insert({
@@ -132,7 +141,8 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
         <span style={{ fontSize: ".6rem", color: "#bbb", letterSpacing: ".08em", textTransform: "uppercase", marginRight: ".2rem" }}>Tip:</span>
         {[
           { id: "all",          label: "Сви",         icon: null },
-          { id: "member",       label: "Члан",        icon: "👤" },
+          { id: "member",       label: "Нови члан",   icon: "👤" },
+          { id: "member_edit",  label: "Измјена",     icon: "✏️" },
           { id: "gallery",      label: "Фотографија", icon: "🖼️" },
           { id: "history",      label: "Прича",       icon: "📖" },
           { id: "announcement", label: "Обавештење",  icon: "📢" },
@@ -194,6 +204,23 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
                 <div className="req-field"><div className="req-field-key">Годиште</div>{req.birth_year || "—"}</div>
                 <div className="req-field"><div className="req-field-key">Родитељи</div>{parentNames(req.parent_ids)}</div>
                 {req.notes && <div className="req-field" style={{ gridColumn: "1/-1" }}><div className="req-field-key">Биљешка</div>{req.notes}</div>}
+              </>}
+
+              {type === "member_edit" && <>
+                {(() => {
+                  const orig = members.find(m => m.id === req.edited_member_id);
+                  return orig ? (
+                    <div className="req-field" style={{ gridColumn: "1/-1", background: "#fffbe6", padding: ".4rem .6rem", border: "1px solid #ffe082", borderRadius: 2 }}>
+                      <div className="req-field-key" style={{ marginBottom: ".3rem" }}>Тренутни подаци</div>
+                      <span>{orig.first_name} {orig.last_name}</span>
+                      {orig.birth_year && <span style={{ color: "#999", marginLeft: ".5rem" }}>{orig.birth_year}{orig.death_year ? `–${orig.death_year}` : ""}</span>}
+                    </div>
+                  ) : null;
+                })()}
+                <div className="req-field"><div className="req-field-key">Ново име</div>{req.first_name} {req.last_name}</div>
+                <div className="req-field"><div className="req-field-key">Год. рођења</div>{req.birth_year || "—"}</div>
+                {req.death_year && <div className="req-field"><div className="req-field-key">Год. смрти</div>{req.death_year}</div>}
+                {req.notes && <div className="req-field" style={{ gridColumn: "1/-1" }}><div className="req-field-key">Напомена</div>{req.notes}</div>}
               </>}
 
               {type === "gallery" && <>

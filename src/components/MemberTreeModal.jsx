@@ -1,5 +1,7 @@
 import { useState, useRef } from "react";
+import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
+import { FAMILY_SURNAME } from "../config";
 
 function collectDescendants(rootId, allMembers) {
   const result = new Set();
@@ -107,9 +109,128 @@ function MiniNode({ member, subset, selected, onSelect }) {
   );
 }
 
-export default function MemberTreeModal({ root, allMembers, onClose, isAdmin, onAddMember, onEdit }) {
+// ── Mini forma za zahtjev ────────────────────────────────────────────────────
+function RequestPanel({ mode, member, allMembers, user, onDone, onCancel }) {
+  const isEdit = mode === "edit";
+  const [f, setF] = useState(isEdit ? {
+    first_name:  member.first_name  || "",
+    last_name:   member.last_name   || FAMILY_SURNAME,
+    birth_year:  member.birth_year  || "",
+    death_year:  member.death_year  || "",
+    notes:       member.notes       || "",
+    spouse_name: member.spouse_name || "",
+  } : {
+    first_name:  "",
+    last_name:   FAMILY_SURNAME,
+    gender:      "male",
+    birth_year:  "",
+    death_year:  "",
+    notes:       "",
+    spouse_name: "",
+  });
+  const [saving,  setSaving]  = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error,   setError]   = useState("");
+
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+
+  const handleSubmit = async () => {
+    if (!f.first_name.trim()) { setError("Ime је обавезно."); return; }
+    setSaving(true);
+    setError("");
+    try {
+      const payload = {
+        user_id:     user.id,
+        user_email:  user.email,
+        status:      "pending",
+        first_name:  f.first_name.trim(),
+        last_name:   f.last_name.trim(),
+        birth_year:  f.birth_year ? parseInt(f.birth_year) : null,
+        death_year:  f.death_year ? parseInt(f.death_year) : null,
+        notes:       f.notes || null,
+        spouse_name: f.spouse_name || null,
+      };
+
+      if (isEdit) {
+        payload.request_type     = "member_edit";
+        payload.edited_member_id = member.id;
+        payload.title            = `Измјена: ${member.first_name} ${member.last_name}`;
+      } else {
+        payload.request_type      = "member";
+        payload.gender            = f.gender;
+        payload.parent_ids        = [member.id];
+        payload.generational_line = member.generational_line ? member.generational_line + 1 : null;
+        payload.title             = `Нови потомак: ${member.first_name} ${member.last_name}`;
+      }
+
+      const { error: err } = await supabase.from("data_requests").insert(payload);
+      if (err) throw err;
+      setSuccess(true);
+      setTimeout(() => onDone(), 1800);
+    } catch (e) {
+      setError(e.message || "Грешка при слању.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (success) return (
+    <div style={{ padding: "1rem 1.5rem", color: "#2e7d32", fontSize: ".82rem" }}>
+      ✓ Захтјев је послат администратору на одобрење.
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "1rem 1.5rem", borderTop: "1px solid rgba(200,150,62,.15)", background: "#fffdf8" }}>
+      <div style={{ fontSize: ".68rem", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--gold-dark)", marginBottom: ".75rem", fontFamily: "'Josefin Sans',sans-serif" }}>
+        {isEdit ? `✏️ Предлог измјене: ${member.first_name} ${member.last_name}` : `➕ Предлог новог потомка за: ${member.first_name} ${member.last_name}`}
+      </div>
+      <div className="form-grid" style={{ gap: ".5rem" }}>
+        <div className="form-field">
+          <label className="form-label">Име *</label>
+          <input className="form-input" value={f.first_name} onChange={e => set("first_name", e.target.value)} placeholder="нпр. Марко" />
+        </div>
+        <div className="form-field">
+          <label className="form-label">Презиме</label>
+          <input className="form-input" value={f.last_name} onChange={e => set("last_name", e.target.value)} />
+        </div>
+        {!isEdit && (
+          <div className="form-field">
+            <label className="form-label">Пол</label>
+            <select className="form-select" value={f.gender} onChange={e => set("gender", e.target.value)}>
+              <option value="male">Мушки</option>
+              <option value="female">Женски</option>
+            </select>
+          </div>
+        )}
+        <div className="form-field">
+          <label className="form-label">Год. рођења</label>
+          <input className="form-input" type="number" value={f.birth_year} onChange={e => set("birth_year", e.target.value)} placeholder="нпр. 1980" />
+        </div>
+        <div className="form-field">
+          <label className="form-label">Год. смрти</label>
+          <input className="form-input" type="number" value={f.death_year} onChange={e => set("death_year", e.target.value)} placeholder="ако је преминуо/ла" />
+        </div>
+        <div className="form-field full">
+          <label className="form-label">Напомена</label>
+          <textarea className="form-textarea" rows={2} value={f.notes} onChange={e => set("notes", e.target.value)} placeholder="Додатне информације..." />
+        </div>
+      </div>
+      {error && <div style={{ color: "var(--rust)", fontSize: ".72rem", marginTop: ".4rem" }}>⚠ {error}</div>}
+      <div style={{ display: "flex", gap: ".5rem", marginTop: ".75rem", justifyContent: "flex-end" }}>
+        <button className="btn btn-ghost btn-sm" onClick={onCancel} style={{ fontSize: ".68rem" }}>Откажи</button>
+        <button className="btn btn-primary btn-sm" onClick={handleSubmit} disabled={saving} style={{ fontSize: ".68rem" }}>
+          {saving ? "Слање..." : "Пошаљи на одобрење"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function MemberTreeModal({ root, allMembers, onClose, isAdmin, onAddMember, onEdit, user }) {
   const [scale, setScale]       = useState(0.85);
   const [selected, setSelected] = useState(null);
+  const [panel, setPanel]       = useState(null); // null | "add" | "edit"
   const canvasRef = useRef(null);
   const dragging  = useRef(false);
   const startPos  = useRef({ x: 0, y: 0 });
@@ -165,6 +286,14 @@ export default function MemberTreeModal({ root, allMembers, onClose, isAdmin, on
 
   const totalDesc = descIds.size - 1;
 
+  const handleSelect = (m) => {
+    setSelected(m);
+    setPanel(null);
+  };
+
+  const handleAdminAdd  = () => { onAddMember(selected); setSelected(null); };
+  const handleAdminEdit = () => { onEdit(selected); setSelected(null); onClose(); };
+
   return (
     <div className="mtm-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="mtm-modal">
@@ -197,7 +326,7 @@ export default function MemberTreeModal({ root, allMembers, onClose, isAdmin, on
           onTouchEnd={() => { lastTouch.current = null; lastDist.current = null; }}
         >
           <div className="mtm-inner" style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}>
-            <MiniNode member={root} subset={subset} selected={selected} onSelect={setSelected} />
+            <MiniNode member={root} subset={subset} selected={selected} onSelect={handleSelect} />
           </div>
         </div>
 
@@ -207,34 +336,54 @@ export default function MemberTreeModal({ root, allMembers, onClose, isAdmin, on
           <button className="tree-ctrl-btn" onClick={() => setScale(0.85)} title="Ресетуј"><Icon name="reset" size={15} /></button>
         </div>
 
-        {selected && (
+        {/* Info traka */}
+        {selected && panel === null && (
           <div className="mtm-info">
             <span>{selected.gender === "male" ? "👨" : "👩"}</span>
             <strong>{selected.first_name} {selected.last_name}</strong>
             {selected.birth_year && <span style={{ color: "#999" }}>{selected.birth_year}{selected.death_year ? `–${selected.death_year}` : ""}</span>}
             {selected.generational_line && <span style={{ color: "var(--gold-dark)" }}>{selected.generational_line}. кољено</span>}
-            {isAdmin && onAddMember && (
-              <button
-                className="btn btn-primary btn-sm"
-                style={{ marginLeft: "auto", fontSize: ".65rem", padding: ".25rem .65rem" }}
-                onClick={() => { onAddMember(selected); setSelected(null); }}
-                title="Додај дијете/потомка овог члана"
-              >
-                <Icon name="plus" size={11} />Додај потомка
-              </button>
-            )}
-            {isAdmin && onEdit && (
-              <button
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: ".65rem", padding: ".25rem .65rem", ...(onAddMember ? {} : { marginLeft: "auto" }) }}
-                onClick={() => { onEdit(selected); setSelected(null); onClose(); }}
-                title="Измијени податке о члану"
-              >
-                <Icon name="edit" size={11} />Уреди
-              </button>
-            )}
+
+            <div style={{ marginLeft: "auto", display: "flex", gap: ".4rem" }}>
+              {isAdmin ? (
+                <>
+                  {onAddMember && (
+                    <button className="btn btn-primary btn-sm" style={{ fontSize: ".65rem", padding: ".25rem .65rem" }} onClick={handleAdminAdd}>
+                      <Icon name="plus" size={11} />Додај потомка
+                    </button>
+                  )}
+                  {onEdit && (
+                    <button className="btn btn-ghost btn-sm" style={{ fontSize: ".65rem", padding: ".25rem .65rem" }} onClick={handleAdminEdit}>
+                      <Icon name="edit" size={11} />Уреди
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button className="btn btn-primary btn-sm" style={{ fontSize: ".65rem", padding: ".25rem .65rem" }} onClick={() => setPanel("add")}>
+                    <Icon name="plus" size={11} />Предложи потомка
+                  </button>
+                  <button className="btn btn-ghost btn-sm" style={{ fontSize: ".65rem", padding: ".25rem .65rem" }} onClick={() => setPanel("edit")}>
+                    <Icon name="edit" size={11} />Предложи измјену
+                  </button>
+                </>
+              )}
+            </div>
+
             <button className="mtm-info-close" onClick={() => setSelected(null)}><Icon name="close" size={12} /></button>
           </div>
+        )}
+
+        {/* Forma za zahtjev (korisnik) */}
+        {selected && panel !== null && (
+          <RequestPanel
+            mode={panel}
+            member={selected}
+            allMembers={allMembers}
+            user={user}
+            onDone={() => { setSelected(null); setPanel(null); }}
+            onCancel={() => setPanel(null)}
+          />
         )}
       </div>
     </div>
