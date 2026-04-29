@@ -396,15 +396,15 @@ function AnnouncementFormModal({ isAdmin, user, onClose }) {
     if (isAdmin && !expiresAt) { setError("Unesite datum isteka."); return; }
     setSaving(true);
     try {
-      let err;
       if (isAdmin) {
-        ({ error: err } = await supabase.from("announcements").insert({
+        const { error: err } = await supabase.from("announcements").insert({
           message:    content.trim(),
           expires_at: expiresAt,
           created_by: user?.id ?? null,
-        }));
+        });
+        if (err) throw err;
       } else {
-        ({ error: err } = await supabase.from("data_requests").insert({
+        const { error: err } = await supabase.from("data_requests").insert({
           request_type: "announcement",
           title:        "Predlog obaveštenja",
           content:      content.trim(),
@@ -412,9 +412,9 @@ function AnnouncementFormModal({ isAdmin, user, onClose }) {
           status:       "pending",
           user_id:      user.id,
           user_email:   user.email,
-        }));
+        });
+        if (err) throw err;
       }
-      if (err) throw err;
       setSuccess(true);
       setContent("");
       setExpiresAt("");
