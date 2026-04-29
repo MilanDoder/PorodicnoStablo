@@ -50,6 +50,12 @@ export default function App() {
 
   const isAdmin = user?.profile?.role === "admin";
 
+  // Briši keš koji nije Supabase auth (ne diramo sb-* tokene)
+  useEffect(() => {
+    Object.keys(localStorage).forEach(key => {
+      if (!key.startsWith("sb-")) localStorage.removeItem(key);
+    });
+  }, []);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
