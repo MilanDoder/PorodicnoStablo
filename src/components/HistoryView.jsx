@@ -152,8 +152,8 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
         onClose();
 
       } else {
-        // Korisnik — šalje na odobrenje u dva koraka da izbjegnemo prevelik payload
-        const { data: inserted, error: e } = await supabase.from("data_requests").insert({
+        // Korisnik — sve u jednom INSERT-u
+        const { error: e } = await supabase.from("data_requests").insert({
           request_type: "history",
           title:        payload.title,
           content:      payload.content,
@@ -161,21 +161,12 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
           image_data:   imgData || null,
           image_type:   imgType,
           have_pdf:     havePdf,
-          pdf_data:     null,
+          pdf_data:     havePdf ? pdfData : null,
           status:       "pending",
           user_id:      user.id,
           user_email:   user.email,
-        }).select("id").single();
+        });
         if (e) throw e;
-
-        // Ako ima PDF, dodaj ga u posebnom update-u
-        if (havePdf && pdfData && inserted?.id) {
-          const { error: e2 } = await supabase
-            .from("data_requests")
-            .update({ pdf_data: pdfData })
-            .eq("id", inserted.id);
-          if (e2) throw e2;
-        }
 
         // Prikaži success ekran, zatvori nakon 2.5s
         onSaved();
