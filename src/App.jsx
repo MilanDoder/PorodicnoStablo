@@ -1,4 +1,4 @@
-import { FAMILY_FULL_NAME, FAMILY_NAME_PLURAL, FAMILY_BRANCH, FAMILY_SURNAME, FAMILY_LOCATION, APP_TITLE, PDF_FILENAME } from "./config";
+import { FAMILY_FULL_NAME, FAMILY_SURNAME, FAMILY_LOCATION, APP_TITLE, PDF_FILENAME } from "./config";
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { supabase } from "./lib/supabase";
 import Icon from "./components/Icon";
@@ -21,7 +21,6 @@ const TOPBAR_TITLES = {
   list:      "Листа чланова",
   admin:     "Админ панел",
   seobe:     "Сеобе",
-
   zahtjev:   "Захтев за унос члана",
 };
 
@@ -35,56 +34,40 @@ const fetchProfile = async (userId) => {
 };
 
 export default function App() {
-  const [user, setUser]                 = useState(undefined);
+  const [user, setUser]                 = useState(undefined); // undefined = još se učitava
   const [members, setMembers]           = useState([]);
   const [view, setView]                 = useState("tree");
   const [selected, setSelected]         = useState(null);
   const [editMember, setEditMember]     = useState(null);
   const [showModal, setShowModal]       = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
-  const [treeKey,       setTreeKey]       = useState(0);
-  const [showAnnForm,     setShowAnnForm]     = useState(false);
+  const [treeKey, setTreeKey]           = useState(0);
+  const [showAnnForm, setShowAnnForm]   = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
-  const initialized                     = useRef(false);
 
   const isAdmin = user?.profile?.role === "admin";
 
-  // Briši keš koji nije Supabase auth (ne diramo sb-* tokene)
+  // Briši keš koji nije Supabase auth
   useEffect(() => {
     Object.keys(localStorage).forEach(k => { if (!k.startsWith('sb-')) localStorage.removeItem(k); });
   }, []);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
+  // Koristimo SAMO onAuthStateChange — on se okine odmah pri mount-u
+  // sa trenutnom sesijom (ili bez nje), bez race conditiona sa getSession.
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (initialized.current) return;
-      initialized.current = true;
-      if (session) {
-        const profile = await fetchProfile(session.user.id);
-        setUser({ ...session.user, profile });
-      } else {
-        setUser(null);
-      }
-    });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!initialized.current) initialized.current = true;
-        if (event === "SIGNED_OUT") {
+        if (event === "SIGNED_OUT" || !session) {
           setUser(null);
           setMembers([]);
           return;
         }
-        if (session) {
-          const profile = await fetchProfile(session.user.id);
-          setUser({ ...session.user, profile });
-        } else {
-          setUser(null);
-          setMembers([]);
-        }
+        // SIGNED_IN, TOKEN_REFRESHED, INITIAL_SESSION...
+        const profile = await fetchProfile(session.user.id);
+        setUser({ ...session.user, profile });
       }
     );
-
     return () => subscription.unsubscribe();
   }, []);
 
@@ -154,11 +137,9 @@ export default function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setUser(null);
-    setMembers([]);
+    // onAuthStateChange će postaviti user = null automatski
     setView("tree");
     setSelected(null);
-    initialized.current = false;
   };
 
   const handleExportPDF = () => {
@@ -250,8 +231,17 @@ export default function App() {
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
-  if (user === undefined) return null;
-  if (!user) return <LoginPage onLogin={setUser} />;
+
+  // Prikazujemo loading dok onAuthStateChange ne okine prvi put
+  if (user === undefined) return (
+    <div className="loading-screen">
+      <Icon name="spinner" size={28} />
+    </div>
+  );
+
+  // Nije ulogovan — prikaži login stranicu
+  // LoginPage više ne treba onLogin prop — onAuthStateChange sve rješava
+  if (!user) return <LoginPage />;
 
   const nav = [
     { id: "tree",      icon: "tree",    label: "Породично стабло" },
@@ -260,7 +250,7 @@ export default function App() {
     { id: "galerija",  icon: "image",   label: "Галерија" },
     ...(isAdmin
       ? [{ id: "seobe", icon: "history", label: "Сеобе" }, { id: "admin", icon: "shield", label: "Админ панел", badge: pendingCount > 0 ? pendingCount : null }]
-      : [{ id: "zahtjev", icon: "inbox",  label: "Захтјев за унос члана породице" }]
+      : [{ id: "zahtjev", icon: "inbox", label: "Захтјев за унос члана породице" }]
     ),
   ];
 
@@ -386,7 +376,6 @@ export default function App() {
           onClose={() => { setShowModal(false); setEditMember(null); }}
         />
       )}
-
 
       {showRequestForm && (
         <div className="overlay" style={{ zIndex: 1200 }} onClick={e => e.target === e.currentTarget && setShowRequestForm(false)}>
