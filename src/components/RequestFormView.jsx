@@ -9,7 +9,7 @@ const EMPTY_FORM = {
   birth_year: "", death_year: "", notes: "", parent_ids: [], spouse_name: "",
 };
 
-export default function RequestFormView({ user, members }) {
+export default function RequestFormView({ user, members, onSuccess }) {
   const [f,       setF]       = useState(EMPTY_FORM);
   const [saving,  setSaving]  = useState(false);
   const [success, setSuccess] = useState(false);
@@ -37,6 +37,7 @@ export default function RequestFormView({ user, members }) {
       setSuccess(true);
       setF(EMPTY_FORM);
       setTimeout(() => setSuccess(false), 5000);
+      onSuccess?.();
     } catch {
       alert("Неочекивана грешка. Покушајте поново.");
     } finally {
