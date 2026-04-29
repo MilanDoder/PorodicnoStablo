@@ -1,4 +1,4 @@
-import { FAMILY_FULL_NAME, FAMILY_SURNAME, FAMILY_LOCATION, APP_TITLE, PDF_FILENAME } from "./config";
+import { FAMILY_FULL_NAME, FAMILY_NAME_PLURAL, FAMILY_BRANCH, FAMILY_SURNAME, FAMILY_LOCATION, APP_TITLE, PDF_FILENAME } from "./config";
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { supabase } from "./lib/supabase";
 import Icon from "./components/Icon";
@@ -21,7 +21,6 @@ const TOPBAR_TITLES = {
   list:      "Листа чланова",
   admin:     "Админ панел",
   seobe:     "Сеобе",
-  zahtjev:   "Захтев за унос члана",
 };
 
 const fetchProfile = async (userId) => {
@@ -34,7 +33,7 @@ const fetchProfile = async (userId) => {
 };
 
 export default function App() {
-  const [user, setUser]                 = useState(undefined); // undefined = još se učitava
+  const [user, setUser]                 = useState(undefined); // undefined = jos se ucitava
   const [members, setMembers]           = useState([]);
   const [view, setView]                 = useState("tree");
   const [selected, setSelected]         = useState(null);
@@ -47,15 +46,13 @@ export default function App() {
 
   const isAdmin = user?.profile?.role === "admin";
 
-  // Briši keš koji nije Supabase auth
+  // Brisi kes koji nije Supabase auth
   useEffect(() => {
-    localStorage.clear();
-    // Object.keys(localStorage).forEach(k => { if (!k.startsWith('sb-')) localStorage.removeItem(k); });
+    Object.keys(localStorage).forEach(k => { if (!k.startsWith('sb-')) localStorage.removeItem(k); });
   }, []);
 
-  // ── Auth ──────────────────────────────────────────────────────────────────
-  // Koristimo SAMO onAuthStateChange — on se okine odmah pri mount-u
-  // sa trenutnom sesijom (ili bez nje), bez race conditiona sa getSession.
+  // Auth: koristimo SAMO onAuthStateChange koji okine i INITIAL_SESSION pri mount-u
+  // — eliminise race condition koji je postojao izmedju getSession i onAuthStateChange
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -64,7 +61,6 @@ export default function App() {
           setMembers([]);
           return;
         }
-        // SIGNED_IN, TOKEN_REFRESHED, INITIAL_SESSION...
         const profile = await fetchProfile(session.user.id);
         setUser({ ...session.user, profile });
       }
@@ -79,7 +75,6 @@ export default function App() {
     }
   }, [user]);
 
-  // ── Data ──────────────────────────────────────────────────────────────────
   const loadMembers = async () => {
     const { data, error } = await supabase.from("members_with_parents").select("*").order("id");
     if (!error) setMembers(data || []);
@@ -125,8 +120,8 @@ export default function App() {
       setShowModal(false);
       setEditMember(null);
     } catch (err) {
-      console.error("Greška pri čuvanju:", err);
-      alert("Greška: " + (err.message || JSON.stringify(err)));
+      console.error("Greska pri cuvanju:", err);
+      alert("Greska: " + (err.message || JSON.stringify(err)));
     }
   };
 
@@ -138,14 +133,9 @@ export default function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-      localStorage.clear(); // ako želiš da obrišeš sve
-
-  // očisti sessionStorage ako koristiš njega
-  sessionStorage.clear();
-    console.log("Odjava");
-    // onAuthStateChange će postaviti user = null automatski
-   // setView("tree");
-    //setSelected(null);
+    // onAuthStateChange ce pozvati setUser(null) automatski
+    setView("tree");
+    setSelected(null);
   };
 
   const handleExportPDF = () => {
@@ -236,17 +226,14 @@ export default function App() {
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
-  // Prikazujemo loading dok onAuthStateChange ne okine prvi put
+  // Dok se auth ucitava — spinner umjesto praznog ekrana
   if (user === undefined) return (
     <div className="loading-screen">
       <Icon name="spinner" size={28} />
     </div>
   );
 
-  // Nije ulogovan — prikaži login stranicu
-  // LoginPage više ne treba onLogin prop — onAuthStateChange sve rješava
+  // Nije ulogovan — login stranica (bez onLogin props, auth ide kroz onAuthStateChange)
   if (!user) return <LoginPage />;
 
   const nav = [
@@ -256,7 +243,7 @@ export default function App() {
     { id: "galerija",  icon: "image",   label: "Галерија" },
     ...(isAdmin
       ? [{ id: "seobe", icon: "history", label: "Сеобе" }, { id: "admin", icon: "shield", label: "Админ панел", badge: pendingCount > 0 ? pendingCount : null }]
-      : [{ id: "zahtjev", icon: "inbox", label: "Захтјев за унос члана породице" }]
+      : []
     ),
   ];
 
@@ -287,6 +274,11 @@ export default function App() {
               {n.badge && <span className="nav-badge">{n.badge}</span>}
             </button>
           ))}
+          {!isAdmin && (
+            <button className="nav-item" onClick={() => setShowRequestForm(true)}>
+              <Icon name="inbox" size={15} />Захтјев за унос члана
+            </button>
+          )}
         </nav>
         <div className="sidebar-footer">
           <div className="sidebar-credits">
@@ -326,7 +318,7 @@ export default function App() {
               </button>
             )}
             {!isAdmin && (
-              <button className="btn btn-primary" onClick={() => setShowRequestForm(false)}>
+              <button className="btn btn-primary" onClick={() => setShowRequestForm(true)}>
                 <Icon name="plus" size={13} />Предложи члана
               </button>
             )}
@@ -367,7 +359,6 @@ export default function App() {
           })()}
           {view === "list"      && <ListView members={members} isAdmin={isAdmin} user={user} onEdit={openModal} onDelete={handleDelete} onAddMember={(parent) => { setEditMember({ parent_ids: [parent.id], generational_line: parent.generational_line ? parent.generational_line + 1 : null }); setShowModal(true); }} />}
           {view === "admin"     && isAdmin  && <AdminPanel members={members} currentUser={user} onMemberAdded={() => { loadMembers(); loadPendingCount(); }} />}
-          {view === "zahtjev"   && !isAdmin && <RequestFormView user={user} members={members} />}
           {view === "istorijat" && <HistoryView user={user} isAdmin={isAdmin} />}
           {view === "galerija"  && <GalleryView user={user} isAdmin={isAdmin} />}
           {view === "seobe"     && isAdmin && <SeoeView isAdmin={isAdmin} />}
