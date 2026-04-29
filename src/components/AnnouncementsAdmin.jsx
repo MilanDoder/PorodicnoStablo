@@ -34,8 +34,8 @@ export default function AnnouncementsAdmin({ currentUser }) {
 
   const handleSave = async () => {
     setError(""); setSuccess("");
-    if (!form.message.trim()) { setError("Tekst obaveštenja ne sme biti prazan."); return; }
-    if (!form.expires_at)     { setError("Odaberite datum isteka."); return; }
+    if (!form.message.trim()) { setError("Текст обавјештења не смије бити празан."); return; }
+    if (!form.expires_at)     { setError("Одаберите датум истека."); return; }
 
     setSaving(true);
     try {
@@ -54,13 +54,12 @@ export default function AnnouncementsAdmin({ currentUser }) {
             created_by: currentUser?.id ?? null,
           });
       }
-
       if (result.error) throw result.error;
-      setSuccess(editId ? "Obaveštenje je ažurirano." : "Obaveštenje je dodato.");
+      setSuccess(editId ? "Обавјештење је ажурирано." : "Обавјештење је додато.");
       reset();
       await load();
     } catch (e) {
-      setError(e?.message || e?.details || JSON.stringify(e) || "Greška pri čuvanju.");
+      setError(e?.message || e?.details || JSON.stringify(e) || "Грешка при чувању.");
     } finally {
       setSaving(false);
     }
@@ -74,13 +73,13 @@ export default function AnnouncementsAdmin({ currentUser }) {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Obrisati ovo obaveštenje?")) return;
+    if (!window.confirm("Обрисати ово обавјештење?")) return;
     setDeleting(id);
     const result = await supabase.from("announcements").delete().eq("id", id);
     setDeleting(null);
     if (result.error) { setError(result.error.message); return; }
     if (editId === id) reset();
-    setSuccess("Obaveštenje je obrisano.");
+    setSuccess("Обавјештење је обрисано.");
     await load();
   };
 
@@ -90,31 +89,31 @@ export default function AnnouncementsAdmin({ currentUser }) {
   return (
     <div className="admin-wrap" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
-      {/* FORMA */}
+      {/* ФОРМА */}
       <div ref={formRef}>
         <div className="section-title" style={{ marginBottom: ".75rem" }}>
-          {editId ? "✏️ Izmeni obaveštenje" : "➕ Novo obaveštenje"}
+          {editId ? "✏️ Измијени обавјештење" : "➕ Ново обавјештење"}
         </div>
         <div className="ann-form-box">
           <div className="ann-form-field">
-            <label className="ann-label">Tekst obaveštenja</label>
+            <label className="ann-label">Текст обавјештења</label>
             <textarea
               className="ann-textarea"
               rows={3}
-              placeholder="Unesite tekst koji će se prikazivati u traci..."
+              placeholder="Унесите текст који ће се приказивати у траци..."
               value={form.message}
               onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
             />
           </div>
           <div className="ann-form-field">
-            <label className="ann-label">Datum isteka</label>
+            <label className="ann-label">Датум истека</label>
             <input
               type="date"
               className="ann-input"
               value={form.expires_at}
               onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
             />
-            <span style={{ fontSize: ".7rem", color: "#aaa" }}>Obaveštenje nestaje posle ovog datuma.</span>
+            <span style={{ fontSize: ".7rem", color: "#aaa" }}>Обавјештење нестаје послије овог датума.</span>
           </div>
 
           {error   && <div className="ann-msg ann-msg--error">⚠ {error}</div>}
@@ -122,21 +121,21 @@ export default function AnnouncementsAdmin({ currentUser }) {
 
           <div style={{ display: "flex", gap: ".6rem", marginTop: ".75rem" }}>
             <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? "Čuvanje..." : editId ? "Sačuvaj izmene" : "Dodaj obaveštenje"}
+              {saving ? "Чување..." : editId ? "Сачувај измене" : "Додај обавјештење"}
             </button>
-            {editId && <button className="btn btn-ghost" onClick={reset}>Odustani</button>}
+            {editId && <button className="btn btn-ghost" onClick={reset}>Одустани</button>}
           </div>
         </div>
       </div>
 
-      {/* AKTIVNA */}
+      {/* АКТИВНА ОБАВЈЕШТЕЊА */}
       <div>
         <div className="section-title" style={{ marginBottom: ".75rem" }}>
-          Aktivna obaveštenja
+          Активна обавјештења
           <span className="ann-count ann-count--active">{active.length}</span>
         </div>
         {active.length === 0
-          ? <div className="ann-empty">Nema aktivnih obaveštenja.</div>
+          ? <div className="ann-empty">Нема активних обавјештења.</div>
           : <div className="ann-list">
               {active.map(ann => (
                 <AnnRow key={ann.id} ann={ann} isEditing={editId === ann.id}
@@ -147,11 +146,11 @@ export default function AnnouncementsAdmin({ currentUser }) {
         }
       </div>
 
-      {/* ISTEKLA */}
+      {/* ИСТЕКЛА ОБАВЈЕШТЕЊА */}
       {expired.length > 0 && (
         <div>
           <div className="section-title" style={{ marginBottom: ".75rem", opacity: .55 }}>
-            Istekla obaveštenja
+            Истекла обавјештења
             <span className="ann-count ann-count--expired">{expired.length}</span>
           </div>
           <div className="ann-list">
@@ -171,8 +170,8 @@ function AnnRow({ ann, isEditing, deleting, onEdit, onDelete, active }) {
   return (
     <div className={[
       "ann-row",
-      !active    ? "ann-row--expired" : "",
-      isEditing  ? "ann-row--editing" : "",
+      !active   ? "ann-row--expired" : "",
+      isEditing ? "ann-row--editing" : "",
     ].filter(Boolean).join(" ")}>
       <div className={`ann-pill ${active ? "ann-pill--active" : "ann-pill--expired"}`}>
         {active ? "●" : "○"}
@@ -180,16 +179,16 @@ function AnnRow({ ann, isEditing, deleting, onEdit, onDelete, active }) {
       <div className="ann-row-body">
         <div className="ann-row-msg">{ann.message}</div>
         <div className="ann-row-meta">
-          <span>Kreirano: {formatDate(ann.created_at?.split("T")[0])}</span>
+          <span>Креирано: {formatDate(ann.created_at?.split("T")[0])}</span>
           <span className={active ? "ann-expires" : "ann-expires ann-expires--past"}>
-            {active ? `Ističe: ${formatDate(ann.expires_at)}` : `Isteklo: ${formatDate(ann.expires_at)}`}
+            {active ? `Истиче: ${formatDate(ann.expires_at)}` : `Истекло: ${formatDate(ann.expires_at)}`}
           </span>
         </div>
       </div>
       <div className="ann-row-actions">
-        <button className="ann-btn ann-btn--edit"   onClick={onEdit}   disabled={deleting}>Izmeni</button>
+        <button className="ann-btn ann-btn--edit"   onClick={onEdit}   disabled={deleting}>Измијени</button>
         <button className="ann-btn ann-btn--delete" onClick={onDelete} disabled={deleting}>
-          {deleting ? "..." : "Obriši"}
+          {deleting ? "..." : "Обриши"}
         </button>
       </div>
     </div>
