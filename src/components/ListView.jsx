@@ -23,7 +23,7 @@ function cmp(a, b, sortKey, sortDir) {
   return 0;
 }
 
-export default function ListView({ members, isAdmin, onEdit, onDelete }) {
+export default function ListView({ members, isAdmin, onEdit, onDelete, onAddMember }) {
   const [q,        setQ]        = useState("");
   const [sortKey,  setSortKey]  = useState("name");
   const [sortDir,  setSortDir]  = useState("asc");
@@ -181,6 +181,8 @@ export default function ListView({ members, isAdmin, onEdit, onDelete }) {
           root={treeRoot}
           allMembers={members}
           onClose={() => setTreeRoot(null)}
+          isAdmin={isAdmin}
+          onAddMember={(parent) => { setTreeRoot(null); onAddMember && onAddMember(parent); }}
         />
       )}
     </div>
