@@ -26,6 +26,26 @@ export default function MemberModal({ member, members, onSave, onClose }) {
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   const others = members.filter(m => m.id !== f.id);
 
+  // Automatski izračunaj koleno na osnovu roditelja
+  const calcGenLine = (parentIds) => {
+    if (!parentIds || parentIds.length === 0) return null;
+    const parentGens = parentIds
+      .map(pid => members.find(m => m.id === pid)?.generational_line)
+      .filter(g => g != null);
+    if (parentGens.length === 0) return null;
+    return Math.max(...parentGens) + 1;
+  };
+
+  const handleParentsChange = (ids) => {
+    const computed = calcGenLine(ids);
+    setF(p => ({
+      ...p,
+      parent_ids: ids,
+      // Postavi samo ako nije ručno uneseno ili ako je bio auto-izračunat
+      generational_line: computed ?? p.generational_line,
+    }));
+  };
+
   const handleSave = async () => {
     if (!f.first_name) return;
     setSaving(true);
@@ -67,8 +87,21 @@ export default function MemberModal({ member, members, onSave, onClose }) {
               <input className="form-input" type="number" value={f.death_year || ""} onChange={e => set("death_year", e.target.value || null)} placeholder="празно ако је жив/а" />
             </div>
             <div className="form-field">
-              <label className="form-label">Кољено</label>
-              <input className="form-input" type="number" value={f.generational_line || ""} onChange={e => set("generational_line", e.target.value ? parseInt(e.target.value) : null)} placeholder="нпр. 3" />
+              <label className="form-label">
+                Кољено
+                {calcGenLine(f.parent_ids) !== null && (
+                  <span style={{ marginLeft: ".4rem", fontSize: ".6rem", color: "var(--gold-dark)", fontFamily: "'Josefin Sans',sans-serif", letterSpacing: ".05em" }}>
+                    • ауто
+                  </span>
+                )}
+              </label>
+              <input
+                className="form-input"
+                type="number"
+                value={f.generational_line || ""}
+                onChange={e => set("generational_line", e.target.value ? parseInt(e.target.value) : null)}
+                placeholder="нпр. 3"
+              />
             </div>
 
             {/* ── Istaknuti član ── */}
@@ -103,7 +136,7 @@ export default function MemberModal({ member, members, onSave, onClose }) {
               <ParentPicker
                 members={others}
                 selectedIds={f.parent_ids || []}
-                onChange={ids => set("parent_ids", ids)}
+                onChange={handleParentsChange}
                 excludeId={f.id}
               />
             </div>
