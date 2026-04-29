@@ -1,12 +1,8 @@
 import { FAMILY_SURNAME } from "../config";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
 import ParentPicker from "./ParentPicker";
-
-const STATUS_LABEL = { pending: "На чекању", approved: "Прихваћен", rejected: "Одбијен" };
-const STATUS_CLASS = { pending: "status-pending", approved: "status-approved", rejected: "status-rejected" };
-const STATUS_ICON  = { pending: "clock", approved: "check", rejected: "x" };
 
 const EMPTY_FORM = {
   first_name: "", last_name: FAMILY_SURNAME, gender: "male",
@@ -14,42 +10,29 @@ const EMPTY_FORM = {
 };
 
 export default function RequestFormView({ user, members }) {
-  const [f,           setF]           = useState(EMPTY_FORM);
-  const [saving,      setSaving]      = useState(false);
-  const [success,     setSuccess]     = useState(false);
-
+  const [f,       setF]       = useState(EMPTY_FORM);
+  const [saving,  setSaving]  = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
-
-
-    setLoadingReqs(true);
-    const { data } = await supabase
-      .from("data_requests")
-      .select("*")
-      .eq("user_id", user.id)          // samo moji zahtjevi
-      .order("created_at", { ascending: false });
-    setMyRequests(data || []);
-    setLoadingReqs(false);
-  };
 
   const handleSubmit = async () => {
     if (!f.first_name) return;
     setSaving(true);
     try {
-      const payload = {
-        user_id:    user.id,
-        user_email: user.email,
-        first_name: f.first_name,
-        last_name:  f.last_name,
-        gender:     f.gender,
-        birth_year: f.birth_year ? parseInt(f.birth_year) : null,
-        death_year: f.death_year ? parseInt(f.death_year) : null,
-        notes:      f.notes || null,
-        parent_ids: f.parent_ids,
+      const { error } = await supabase.from("data_requests").insert({
+        user_id:     user.id,
+        user_email:  user.email,
+        first_name:  f.first_name,
+        last_name:   f.last_name,
+        gender:      f.gender,
+        birth_year:  f.birth_year ? parseInt(f.birth_year) : null,
+        death_year:  f.death_year ? parseInt(f.death_year) : null,
+        notes:       f.notes || null,
+        parent_ids:  f.parent_ids,
         spouse_name: f.spouse_name || null,
-        status:     "pending",
-      };
-      const { error } = await supabase.from("data_requests").insert(payload);
+        status:      "pending",
+      });
       if (error) { alert("Грешка при слању: " + error.message); return; }
       setSuccess(true);
       setF(EMPTY_FORM);
@@ -61,28 +44,19 @@ export default function RequestFormView({ user, members }) {
     }
   };
 
-    ? myRequests
-    : myRequests.filter(r => r.status === filterStatus);
-
-    all:      myRequests.length,
-    pending:  myRequests.filter(r => r.status === "pending").length,
-    approved: myRequests.filter(r => r.status === "approved").length,
-    rejected: myRequests.filter(r => r.status === "rejected").length,
-  };
-
   return (
     <div className="req-form-wrap">
-
-      {/* ── ФОРМА ZA ČLANA ── */}
-      <div className="req-form-card" style={{ marginBottom: "2rem" }}>
+      <div className="req-form-card">
         <div className="req-form-title">Пошаљите захтјев за унос члана</div>
         <p className="req-form-desc">
           Уколико знате податке о члану породице који није евидентиран, попуните форму испод.
           Администратор ће прегледати ваш захтјев и одлучити да ли се унесе у стабло.
         </p>
+
         {success && (
           <div className="req-success">✓ Захтјев је успјешно послат! Администратор ће га прегледати.</div>
         )}
+
         <div className="form-grid">
           <div className="form-field">
             <label className="form-label">Ime *</label>
@@ -125,9 +99,12 @@ export default function RequestFormView({ user, members }) {
             <textarea className="form-textarea" value={f.notes} onChange={e => set("notes", e.target.value)} placeholder="Опишите везу или извор ових података..." />
           </div>
         </div>
+
         <div style={{ marginTop: "1rem", display: "flex", justifyContent: "flex-end" }}>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={saving || !f.first_name}>
-            {saving ? <><Icon name="spinner" size={14} />Слање...</> : <><Icon name="send" size={14} />Пошаљи захтјев</>}
+            {saving
+              ? <><Icon name="spinner" size={14} />Слање...</>
+              : <><Icon name="send" size={14} />Пошаљи захтјев</>}
           </button>
         </div>
       </div>
