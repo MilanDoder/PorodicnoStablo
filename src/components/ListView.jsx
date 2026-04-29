@@ -182,6 +182,7 @@ export default function ListView({ members, isAdmin, onEdit, onDelete, onAddMemb
           allMembers={members}
           onClose={() => setTreeRoot(null)}
           isAdmin={isAdmin}
+          onEdit={(member) => { setTreeRoot(null); onEdit && onEdit(member); }}
           onAddMember={(parent) => { setTreeRoot(null); onAddMember && onAddMember(parent); }}
         />
       )}
