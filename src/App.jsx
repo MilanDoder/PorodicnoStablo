@@ -1,4 +1,4 @@
-import { FAMILY_SURNAME } from "../config";
+import { FAMILY_SURNAME } from "./config";
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
