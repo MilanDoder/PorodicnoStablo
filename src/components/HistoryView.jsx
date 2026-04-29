@@ -81,14 +81,12 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
   const [imgData,  setImgData]  = useState(item?.cover_image || null);
   const [imgType,  setImgType]  = useState(item?.image_type  || "image/jpeg");
   const [preview,  setPreview]  = useState(item?.cover_image ? `data:${item.image_type};base64,${item.cover_image}` : null);
-
-  // PDF stanje
   const [havePdf,  setHavePdf]  = useState(item?.have_pdf  || false);
   const [pdfData,  setPdfData]  = useState(item?.pdf_data  || null);
   const [pdfName,  setPdfName]  = useState(null);
   const [pdfSize,  setPdfSize]  = useState(null);
-
   const [saving,   setSaving]   = useState(false);
+  const [success,  setSuccess]  = useState(false);
   const [error,    setError]    = useState("");
 
   const imgRef = useRef();
@@ -144,11 +142,17 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
       if (isEdit) {
         const { error: e } = await supabase.from("history_stories").update(payload).eq("id", item.id);
         if (e) throw e;
+        onSaved();
+        onClose();
+
       } else if (isAdmin) {
         const { error: e } = await supabase.from("history_stories").insert({ ...payload, created_by: user.id });
         if (e) throw e;
+        onSaved();
+        onClose();
+
       } else {
-        // Prvo inserta bez pdf_data da izbjegnemo prevelik payload
+        // Korisnik — šalje na odobrenje u dva koraka da izbjegnemo prevelik payload
         const { data: inserted, error: e } = await supabase.from("data_requests").insert({
           request_type: "history",
           title:        payload.title,
@@ -157,14 +161,14 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
           image_data:   imgData || null,
           image_type:   imgType,
           have_pdf:     havePdf,
-          pdf_data:     null, // dodajemo u sljedecem koraku
+          pdf_data:     null,
           status:       "pending",
           user_id:      user.id,
           user_email:   user.email,
         }).select("id").single();
         if (e) throw e;
 
-        // Ako ima PDF, update samo pdf_data kolonu posebno
+        // Ako ima PDF, dodaj ga u posebnom update-u
         if (havePdf && pdfData && inserted?.id) {
           const { error: e2 } = await supabase
             .from("data_requests")
@@ -172,10 +176,14 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
             .eq("id", inserted.id);
           if (e2) throw e2;
         }
+
+        // Prikaži success ekran, zatvori nakon 2.5s
+        onSaved();
+        setSuccess(true);
+        setTimeout(() => onClose(), 2500);
+        return;
       }
 
-      onSaved();
-      onClose();
     } catch (err) {
       console.error("handleSave greška:", err);
       setError(err.message || err.details || err.hint || JSON.stringify(err) || "Грешка при чувању.");
@@ -195,86 +203,103 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
         </div>
 
         <div className="modal-body">
-          <div className="form-grid">
-            <div className="form-field full">
-              <label className="form-label">Наслов приче *</label>
-              <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="нпр. Досељење у Пољану" />
-            </div>
-
-            <div className="form-field full">
-              <label className="form-label">Текст приче *</label>
-              <textarea className="form-textarea" value={content} onChange={e => setContent(e.target.value)} placeholder="Испишите причу овде..." rows={7} style={{ minHeight: 140 }} />
-            </div>
-
-            <div className="form-field">
-              <label className="form-label">Датум догађаја</label>
-              <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
-            </div>
-
-            {/* Slika */}
-            <div className="form-field">
-              <label className="form-label">Насловна слика (опционо)</label>
-              <input ref={imgRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleImgFile} />
-              <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center" }} onClick={() => imgRef.current.click()}>
-                <Icon name="image" size={13} />{preview ? "Промјени слику" : "Додај слику"}
-              </button>
-            </div>
-
-            {preview && (
-              <div className="form-field full">
-                <img src={preview} alt="preview" style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 4, border: "1px solid rgba(200,150,62,.2)" }} />
+          {success ? (
+            // ── Success ekran ─────────────────────────────────────────────
+            <div style={{ textAlign: "center", padding: "2.5rem 1rem" }}>
+              <div style={{ fontSize: "2.8rem", marginBottom: ".75rem" }}>✓</div>
+              <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "1.3rem", fontWeight: 600, color: "var(--ink)", marginBottom: ".5rem" }}>
+                Захтјев је послат!
               </div>
-            )}
-
-            {/* PDF checkbox + upload */}
-            <div className="form-field full" style={{ borderTop: "1px solid rgba(200,150,62,.12)", paddingTop: ".75rem" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: ".5rem", cursor: "pointer", userSelect: "none" }}>
-                <input
-                  type="checkbox"
-                  checked={havePdf}
-                  onChange={e => {
-                    setHavePdf(e.target.checked);
-                    if (!e.target.checked) handleRemovePdf();
-                  }}
-                  style={{ width: 15, height: 15, accentColor: "var(--gold-dark)", cursor: "pointer" }}
-                />
-                <span className="form-label" style={{ margin: 0 }}>Документа (PDF)</span>
-              </label>
+              <div style={{ fontSize: ".82rem", color: "#888", lineHeight: 1.7 }}>
+                Ваша прича{havePdf ? " и PDF документ" : ""} послати су администратору на одобрење.<br />
+                Бићете обавијештени када буде објављена.
+              </div>
             </div>
-
-            {havePdf && (
+          ) : (
+            // ── Forma ─────────────────────────────────────────────────────
+            <div className="form-grid">
               <div className="form-field full">
-                <input ref={pdfRef} type="file" accept="application/pdf" style={{ display: "none" }} onChange={handlePdfFile} />
-                {pdfData ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: ".5rem", padding: ".5rem .75rem", background: "rgba(200,150,62,.07)", borderRadius: 6, border: "1px solid rgba(200,150,62,.2)" }}>
-                    <span style={{ fontSize: "1.1rem" }}>📄</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: ".78rem", fontWeight: 600, color: "var(--ink)" }}>{pdfName || "Документ.pdf"}</div>
-                      {pdfSize && <div style={{ fontSize: ".68rem", color: "#aaa" }}>{pdfSize} KB</div>}
+                <label className="form-label">Наслов приче *</label>
+                <input className="form-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="нпр. Досељење у Пољану" />
+              </div>
+
+              <div className="form-field full">
+                <label className="form-label">Текст приче *</label>
+                <textarea className="form-textarea" value={content} onChange={e => setContent(e.target.value)} placeholder="Испишите причу овде..." rows={7} style={{ minHeight: 140 }} />
+              </div>
+
+              <div className="form-field">
+                <label className="form-label">Датум догађаја</label>
+                <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
+              </div>
+
+              {/* Slika */}
+              <div className="form-field">
+                <label className="form-label">Насловна слика (опционо)</label>
+                <input ref={imgRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleImgFile} />
+                <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center" }} onClick={() => imgRef.current.click()}>
+                  <Icon name="image" size={13} />{preview ? "Промјени слику" : "Додај слику"}
+                </button>
+              </div>
+
+              {preview && (
+                <div className="form-field full">
+                  <img src={preview} alt="preview" style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 4, border: "1px solid rgba(200,150,62,.2)" }} />
+                </div>
+              )}
+
+              {/* PDF checkbox + upload */}
+              <div className="form-field full" style={{ borderTop: "1px solid rgba(200,150,62,.12)", paddingTop: ".75rem" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: ".5rem", cursor: "pointer", userSelect: "none" }}>
+                  <input
+                    type="checkbox"
+                    checked={havePdf}
+                    onChange={e => {
+                      setHavePdf(e.target.checked);
+                      if (!e.target.checked) handleRemovePdf();
+                    }}
+                    style={{ width: 15, height: 15, accentColor: "var(--gold-dark)", cursor: "pointer" }}
+                  />
+                  <span className="form-label" style={{ margin: 0 }}>Документа (PDF)</span>
+                </label>
+              </div>
+
+              {havePdf && (
+                <div className="form-field full">
+                  <input ref={pdfRef} type="file" accept="application/pdf" style={{ display: "none" }} onChange={handlePdfFile} />
+                  {pdfData ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: ".5rem", padding: ".5rem .75rem", background: "rgba(200,150,62,.07)", borderRadius: 6, border: "1px solid rgba(200,150,62,.2)" }}>
+                      <span style={{ fontSize: "1.1rem" }}>📄</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: ".78rem", fontWeight: 600, color: "var(--ink)" }}>{pdfName || "Документ.pdf"}</div>
+                        {pdfSize && <div style={{ fontSize: ".68rem", color: "#aaa" }}>{pdfSize} KB</div>}
+                      </div>
+                      <button className="btn btn-ghost btn-sm" onClick={() => pdfRef.current.click()}>Промјени</button>
+                      <button className="btn btn-danger btn-sm" onClick={handleRemovePdf}>✕</button>
                     </div>
-                    <button className="btn btn-ghost btn-sm" onClick={() => pdfRef.current.click()}>Промјени</button>
-                    <button className="btn btn-danger btn-sm" onClick={handleRemovePdf}>✕</button>
-                  </div>
-                ) : (
-                  <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center" }} onClick={() => pdfRef.current.click()}>
-                    <Icon name="image" size={13} />Изабери PDF фајл
-                  </button>
-                )}
-              </div>
-            )}
+                  ) : (
+                    <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center" }} onClick={() => pdfRef.current.click()}>
+                      <Icon name="image" size={13} />Изабери PDF фајл
+                    </button>
+                  )}
+                </div>
+              )}
 
-            {error && (
-              <div className="form-field full" style={{ color: "var(--rust)", fontSize: ".75rem" }}>⚠ {error}</div>
-            )}
+              {error && (
+                <div className="form-field full" style={{ color: "var(--rust)", fontSize: ".75rem" }}>⚠ {error}</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {!success && (
+          <div className="modal-foot">
+            <button className="btn btn-ghost" onClick={onClose}>Откажи</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? "Слање..." : isEdit ? "Сачувај" : isAdmin ? "Додај причу" : "Пошаљи захтев"}
+            </button>
           </div>
-        </div>
-
-        <div className="modal-foot">
-          <button className="btn btn-ghost" onClick={onClose}>Откажи</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? "Чување..." : isEdit ? "Сачувај" : isAdmin ? "Додај причу" : "Пошаљи захтев"}
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -298,7 +323,6 @@ export default function HistoryView({ isAdmin, user }) {
     setLoading(false);
   };
 
-  // Kad se otvori modal, dovuci i pdf_data samo za tu pricu
   const handleSelect = async (story) => {
     if (story.have_pdf) {
       const { data } = await supabase
@@ -312,7 +336,6 @@ export default function HistoryView({ isAdmin, user }) {
     }
   };
 
-  // Za edit takodjer dovuci pdf_data
   const handleEdit = async (story) => {
     if (story.have_pdf) {
       const { data } = await supabase
@@ -370,7 +393,6 @@ export default function HistoryView({ isAdmin, user }) {
                 {story.story_date && <div className="gallery-caption-sub">📅 {formatDate(story.story_date)}</div>}
                 <div className="gallery-caption-sub" style={{ marginTop: ".3rem", lineHeight: 1.5 }}>{excerpt(story.content)}</div>
 
-                {/* PDF download dugme — lazy load pdf_data na klik */}
                 {story.have_pdf && (
                   <PdfDownloadButton storyId={story.id} title={story.title} />
                 )}
@@ -406,7 +428,7 @@ export default function HistoryView({ isAdmin, user }) {
   );
 }
 
-// Lazy download — dovlaci pdf_data tek kad korisnik klikne
+// ── Lazy PDF download ─────────────────────────────────────────────────────────
 function PdfDownloadButton({ storyId, title }) {
   const [loading, setLoading] = useState(false);
 
