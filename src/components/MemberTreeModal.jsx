@@ -107,7 +107,7 @@ function MiniNode({ member, subset, selected, onSelect }) {
   );
 }
 
-export default function MemberTreeModal({ root, allMembers, onClose }) {
+export default function MemberTreeModal({ root, allMembers, onClose, isAdmin, onAddMember }) {
   const [scale, setScale]       = useState(0.85);
   const [selected, setSelected] = useState(null);
   const canvasRef = useRef(null);
@@ -213,6 +213,16 @@ export default function MemberTreeModal({ root, allMembers, onClose }) {
             <strong>{selected.first_name} {selected.last_name}</strong>
             {selected.birth_year && <span style={{ color: "#999" }}>{selected.birth_year}{selected.death_year ? `–${selected.death_year}` : ""}</span>}
             {selected.generational_line && <span style={{ color: "var(--gold-dark)" }}>{selected.generational_line}. кољено</span>}
+            {isAdmin && onAddMember && (
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ marginLeft: "auto", fontSize: ".65rem", padding: ".25rem .65rem" }}
+                onClick={() => { onAddMember(selected); setSelected(null); }}
+                title="Додај дијете/потомка овог члана"
+              >
+                <Icon name="plus" size={11} />Додај потомка
+              </button>
+            )}
             <button className="mtm-info-close" onClick={() => setSelected(null)}><Icon name="close" size={12} /></button>
           </div>
         )}
