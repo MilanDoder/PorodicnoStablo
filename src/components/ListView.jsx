@@ -29,7 +29,8 @@ export default function ListView({ members, isAdmin, onEdit, onDelete, onAddMemb
   const [q,        setQ]        = useState("");
   const [sortKey,  setSortKey]  = useState("name");
   const [sortDir,  setSortDir]  = useState("asc");
-  const [treeRoot, setTreeRoot] = useState(null);
+  const [treeRoot,    setTreeRoot]    = useState(null);
+  const [editRequest, setEditRequest] = useState(null);
 
   // Ref mapa za scroll-to-row
   const rowRefs = useRef({});
