@@ -12,7 +12,8 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
   const [noteMap, setNoteMap]       = useState({});
   const [filterStatus, setFilterStatus] = useState("pending");
   const [filterType, setFilterType] = useState("all");
-  const [clearing, setClearing]     = useState(false);
+  const [clearing,    setClearing]    = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => { loadRequests(); }, [filterStatus]);
 
