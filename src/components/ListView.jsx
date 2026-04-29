@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
 import Icon from "./Icon";
 import MemberTreeModal from "./MemberTreeModal";
+import { supabase } from "../lib/supabase";
+import { FAMILY_SURNAME } from "../config";
 
 const SORTS = [
   { key: "name",   label: "Име" },
@@ -95,7 +97,7 @@ export default function ListView({ members, isAdmin, onEdit, onDelete, onAddMemb
             <th>Родитељи</th>
             <th>Дјеца</th>
             <th>Стабло</th>
-            {isAdmin && <th>Акције</th>}
+            <th>Акције</th>
           </tr>
         </thead>
         <tbody>
@@ -155,26 +157,40 @@ export default function ListView({ members, isAdmin, onEdit, onDelete, onAddMemb
                     🌳
                   </button>
                 </td>
-                {isAdmin && (
-                  <td>
-                    <div style={{ display: "flex", gap: ".35rem" }}>
-                      <button className="btn btn-ghost btn-sm" onClick={() => onEdit(m)}>
-                        <Icon name="edit" size={11} />Уреди
+                <td>
+                  <div style={{ display: "flex", gap: ".35rem" }}>
+                    {isAdmin ? (
+                      <>
+                        <button className="btn btn-ghost btn-sm" onClick={() => onEdit(m)}>
+                          <Icon name="edit" size={11} />Уреди
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => { if (window.confirm(`Обрисати ${m.first_name}?`)) onDelete(m.id); }}
+                        >
+                          <Icon name="trash" size={11} />
+                        </button>
+                      </>
+                    ) : (
+                      <button className="btn btn-ghost btn-sm" onClick={() => setEditRequest(m)}>
+                        <Icon name="edit" size={11} />Измени
                       </button>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => { if (window.confirm(`Обрисати ${m.first_name}?`)) onDelete(m.id); }}
-                      >
-                        <Icon name="trash" size={11} />
-                      </button>
-                    </div>
-                  </td>
-                )}
+                    )}
+                  </div>
+                </td>
               </tr>
             );
           })}
         </tbody>
       </table>
+
+      {editRequest && (
+        <EditRequestModal
+          member={editRequest}
+          user={user}
+          onClose={() => setEditRequest(null)}
+        />
+      )}
 
       {treeRoot && (
         <MemberTreeModal
@@ -187,6 +203,111 @@ export default function ListView({ members, isAdmin, onEdit, onDelete, onAddMemb
           onAddMember={(parent) => { setTreeRoot(null); onAddMember && onAddMember(parent); }}
         />
       )}
+    </div>
+  );
+}
+
+// ── Modal za zahtjev izmjene člana ──────────────────────────────────────────
+function EditRequestModal({ member, user, onClose }) {
+  const [f, setF] = useState({
+    first_name:  member.first_name  || "",
+    last_name:   member.last_name   || FAMILY_SURNAME,
+    birth_year:  member.birth_year  || "",
+    death_year:  member.death_year  || "",
+    notes:       member.notes       || "",
+    spouse_name: "",
+  });
+  const [saving,  setSaving]  = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error,   setError]   = useState("");
+
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+
+  const handleSubmit = async () => {
+    if (!f.first_name.trim()) { setError("Ime је обавезно."); return; }
+    setSaving(true); setError("");
+    try {
+      const { error: err } = await supabase.from("data_requests").insert({
+        request_type:     "member_edit",
+        edited_member_id: member.id,
+        title:            `Измјена: ${member.first_name} ${member.last_name}`,
+        status:           "pending",
+        user_id:          user.id,
+        user_email:       user.email,
+        first_name:       f.first_name.trim(),
+        last_name:        f.last_name.trim(),
+        birth_year:       f.birth_year ? parseInt(f.birth_year) : null,
+        death_year:       f.death_year ? parseInt(f.death_year) : null,
+        notes:            f.notes || null,
+        spouse_name:      f.spouse_name || null,
+      });
+      if (err) throw err;
+      setSuccess(true);
+      setTimeout(() => onClose(), 2000);
+    } catch (e) {
+      setError(e.message || "Грешка при слању.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="overlay" style={{ zIndex: 1200 }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ width: 500 }}>
+        <div className="modal-head">
+          <span className="modal-title">✏️ Предложи измјену — {member.first_name} {member.last_name}</span>
+          <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
+        </div>
+        <div className="modal-body">
+          <p style={{ fontSize: ".75rem", color: "#888", marginBottom: "1rem", lineHeight: 1.6 }}>
+            Промјене које унесете биће послате администратору на одобрење и неће бити одмах видљиве у стаблу.
+          </p>
+
+          {success ? (
+            <div style={{ textAlign: "center", padding: "1.5rem 0", color: "#2e7d32", fontSize: "1rem" }}>
+              ✓ Захтјев је послат администратору на одобрење!
+            </div>
+          ) : (
+            <div className="form-grid">
+              <div className="form-field">
+                <label className="form-label">Ime *</label>
+                <input className="form-input" value={f.first_name} onChange={e => set("first_name", e.target.value)} />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Презиме</label>
+                <input className="form-input" value={f.last_name} onChange={e => set("last_name", e.target.value)} />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Год. рођења</label>
+                <input className="form-input" type="number" value={f.birth_year} onChange={e => set("birth_year", e.target.value)} placeholder="нпр. 1980" />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Год. смрти</label>
+                <input className="form-input" type="number" value={f.death_year} onChange={e => set("death_year", e.target.value)} placeholder="оставити празно ако је жив/а" />
+              </div>
+              <div className="form-field full">
+                <label className="form-label">Супружник</label>
+                <input className="form-input" value={f.spouse_name} onChange={e => set("spouse_name", e.target.value)} placeholder="Ime и презиме супружника" />
+              </div>
+              <div className="form-field full">
+                <label className="form-label">Напомена / Разлог измјене</label>
+                <textarea className="form-textarea" rows={3} value={f.notes} onChange={e => set("notes", e.target.value)} placeholder="Објасните зашто предлажете ову измјену..." />
+              </div>
+            </div>
+          )}
+
+          {error && <div style={{ color: "var(--rust)", fontSize: ".75rem", marginTop: ".5rem" }}>⚠ {error}</div>}
+        </div>
+
+        {!success && (
+          <div className="modal-foot">
+            <button className="btn btn-ghost" onClick={onClose}>Откажи</button>
+            <button className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
+              {saving ? "Слање..." : "Пошаљи на одобрење"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
