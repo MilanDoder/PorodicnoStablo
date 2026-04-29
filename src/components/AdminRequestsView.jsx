@@ -2,25 +2,25 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
 
-const TYPE_LABELS = { member: "Члан", gallery: "Фотографија", history: "Прича" };
-const TYPE_ICONS  = { member: "👤", gallery: "🖼️", history: "📖" };
+const TYPE_LABELS = { member: "Члан", gallery: "Фотографија", history: "Прича", announcement: "Обавештење" };
+const TYPE_ICONS  = { member: "👤", gallery: "🖼️", history: "📖", announcement: "📢" };
 
 export default function AdminRequestsView({ members, onMemberAdded }) {
   const [requests, setRequests]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [processing, setProcessing] = useState(null);
   const [noteMap, setNoteMap]       = useState({});
+  const [filterStatus, setFilterStatus] = useState("pending");
   const [filterType, setFilterType] = useState("all");
+  const [clearing, setClearing]     = useState(false);
 
-  useEffect(() => { loadRequests(); }, []);
+  useEffect(() => { loadRequests(); }, [filterStatus]);
 
   const loadRequests = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("data_requests")
-      .select("*")
-      .eq("status", "pending")
-      .order("created_at", { ascending: true });
+    const q = supabase.from("data_requests").select("*").order("created_at", { ascending: true });
+    if (filterStatus !== "all") q.eq("status", filterStatus);
+    const { data } = await q;
     setRequests(data || []);
     setLoading(false);
   };
@@ -28,10 +28,9 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
   const handleDecision = async (req, decision) => {
     setProcessing(req.id);
     const adminNote = noteMap[req.id] || null;
+    const type = req.request_type || "member";
 
     if (decision === "approved") {
-      const type = req.request_type || "member";
-
       if (type === "member") {
         const { data: newMember } = await supabase.from("members").insert({
           first_name: req.first_name, last_name: req.last_name,
@@ -60,6 +59,11 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
           cover_image: req.image_data || null, image_type: req.image_type || "image/jpeg",
           story_date: req.story_date || null,
         });
+      } else if (type === "announcement") {
+        await supabase.from("announcements").insert({
+          message:    req.content,
+          expires_at: req.expires_at,
+        });
       }
     }
 
@@ -72,46 +76,116 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
     loadRequests();
   };
 
+  const handleClearResolved = async () => {
+    if (!window.confirm("Obrisati sve odobrene i odbijene zahteve? Ova radnja se ne može poništiti.")) return;
+    setClearing(true);
+    await supabase.from("data_requests").delete().in("status", ["approved", "rejected"]);
+    setClearing(false);
+    loadRequests();
+  };
+
   const parentNames = (parentIds) => {
     const ids = Array.isArray(parentIds) ? parentIds : [];
     return ids.map(pid => { const m = members.find(x => x.id === pid); return m ? `${m.first_name} ${m.last_name}` : `#${pid}`; }).join(", ") || "—";
   };
 
-  const filtered = filterType === "all" ? requests : requests.filter(r => (r.request_type || "member") === filterType);
+  const filtered = filterType === "all"
+    ? requests
+    : requests.filter(r => (r.request_type || "member") === filterType);
+
+  const resolvedCount = requests.filter(r => r.status === "approved" || r.status === "rejected").length;
 
   if (loading) return <div style={{ textAlign: "center", padding: "3rem", color: "#aaa" }}><Icon name="spinner" size={24} /></div>;
 
   return (
     <div className="req-wrap">
-      <div style={{ display: "flex", gap: ".5rem", marginBottom: "1rem" }}>
-        {["all", "member", "gallery", "history"].map(t => (
-          <button key={t} className={`btn btn-sm ${filterType === t ? "btn-primary" : "btn-ghost"}`} onClick={() => setFilterType(t)}>
-            {t === "all"
-              ? `Сви (${requests.length})`
-              : `${TYPE_ICONS[t]} ${TYPE_LABELS[t]} (${requests.filter(r => (r.request_type || "member") === t).length})`}
-          </button>
+
+      {/* Status tabs */}
+      <div style={{ display: "flex", gap: ".4rem", marginBottom: ".75rem", borderBottom: "1px solid rgba(200,150,62,.12)", paddingBottom: ".75rem", alignItems: "center", flexWrap: "wrap" }}>
+        {[
+          { id: "pending",  label: "На чекању" },
+          { id: "approved", label: "Odobreni" },
+          { id: "rejected", label: "Odbijeni" },
+          { id: "all",      label: "Сви" },
+        ].map(s => (
+          <button key={s.id}
+            className={`btn btn-sm ${filterStatus === s.id ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => { setFilterStatus(s.id); setFilterType("all"); }}
+          >{s.label}</button>
         ))}
+
+        {resolvedCount > 0 && (
+          <button
+            className="btn btn-sm btn-danger"
+            style={{ marginLeft: "auto" }}
+            onClick={handleClearResolved}
+            disabled={clearing}
+          >
+            <Icon name="trash" size={11} />
+            {clearing ? "Brisanje..." : `Obriši odobrene/odbijene (${resolvedCount})`}
+          </button>
+        )}
+      </div>
+
+      {/* Type filter */}
+      <div style={{ display: "flex", gap: ".4rem", marginBottom: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+        <span style={{ fontSize: ".6rem", color: "#bbb", letterSpacing: ".08em", textTransform: "uppercase", marginRight: ".2rem" }}>Tip:</span>
+        {[
+          { id: "all",          label: "Сви",         icon: null },
+          { id: "member",       label: "Члан",        icon: "👤" },
+          { id: "gallery",      label: "Фотографија", icon: "🖼️" },
+          { id: "history",      label: "Прича",       icon: "📖" },
+          { id: "announcement", label: "Обавештење",  icon: "📢" },
+        ].map(t => {
+          const cnt = t.id === "all" ? requests.length : requests.filter(r => (r.request_type || "member") === t.id).length;
+          return (
+            <button key={t.id}
+              className={`btn btn-sm ${filterType === t.id ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setFilterType(t.id)}
+            >
+              {t.icon && `${t.icon} `}{t.label} ({cnt})
+            </button>
+          );
+        })}
       </div>
 
       {filtered.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">✅</div>
-          <div className="empty-state-text">Нема захтјева на чекању</div>
+          <div className="empty-state-text">Нема захтјева</div>
         </div>
       ) : filtered.map(req => {
-        const type = req.request_type || "member";
+        const type   = req.request_type || "member";
+        const isPending = req.status === "pending";
         return (
           <div key={req.id} className="req-card">
             <div className="req-card-head">
-              <div>
-                <span style={{ fontSize: ".6rem", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--gold-dark)", marginRight: ".5rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: ".5rem", flexWrap: "wrap" }}>
+                <span style={{ fontSize: ".6rem", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--gold-dark)" }}>
                   {TYPE_ICONS[type]} {TYPE_LABELS[type]}
                 </span>
                 <span className="req-card-name">
-                  {type === "member" ? `${req.first_name} ${req.last_name}` : req.title}
+                  {type === "member"
+                    ? `${req.first_name} ${req.last_name}`
+                    : type === "announcement"
+                      ? (req.content?.slice(0, 80) || req.title)
+                      : req.title}
                 </span>
+                {!isPending && (
+                  <span style={{
+                    fontSize: ".6rem", padding: ".15rem .5rem", letterSpacing: ".05em",
+                    background: req.status === "approved" ? "#e8f5e9" : "#fce8e8",
+                    color:      req.status === "approved" ? "#2e7d32" : "#b71c1c",
+                    border:     `1px solid ${req.status === "approved" ? "#a5d6a7" : "#ef9a9a"}`,
+                  }}>
+                    {req.status === "approved" ? "✓ Odobreno" : "✗ Odbijeno"}
+                  </span>
+                )}
               </div>
-              <span className="req-card-meta">{new Date(req.created_at).toLocaleDateString("sr-Latn")}</span>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: ".2rem" }}>
+                <span className="req-card-meta">{new Date(req.created_at).toLocaleDateString("sr-Latn")}</span>
+                {req.user_email && <span className="req-card-meta" style={{ fontSize: ".6rem" }}>📧 {req.user_email}</span>}
+              </div>
             </div>
 
             <div className="req-card-body">
@@ -125,7 +199,8 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
               {type === "gallery" && <>
                 {req.image_data && (
                   <div style={{ gridColumn: "1/-1" }}>
-                    <img src={`data:${req.image_type || "image/jpeg"};base64,${req.image_data}`} alt={req.title} style={{ maxHeight: 160, maxWidth: "100%", objectFit: "cover", border: "1px solid rgba(200,150,62,.2)" }} />
+                    <img src={`data:${req.image_type || "image/jpeg"};base64,${req.image_data}`} alt={req.title}
+                      style={{ maxHeight: 160, maxWidth: "100%", objectFit: "cover", border: "1px solid rgba(200,150,62,.2)" }} />
                   </div>
                 )}
                 {req.photo_year && <div className="req-field"><div className="req-field-key">Година</div>{req.photo_year}.</div>}
@@ -135,31 +210,55 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
               {type === "history" && <>
                 {req.image_data && (
                   <div style={{ gridColumn: "1/-1" }}>
-                    <img src={`data:${req.image_type || "image/jpeg"};base64,${req.image_data}`} alt={req.title} style={{ maxHeight: 120, maxWidth: "100%", objectFit: "cover", border: "1px solid rgba(200,150,62,.2)" }} />
+                    <img src={`data:${req.image_type || "image/jpeg"};base64,${req.image_data}`} alt={req.title}
+                      style={{ maxHeight: 120, maxWidth: "100%", objectFit: "cover", border: "1px solid rgba(200,150,62,.2)" }} />
                   </div>
                 )}
                 {req.story_date && <div className="req-field"><div className="req-field-key">Датум</div>{new Date(req.story_date).toLocaleDateString("sr-Latn")}</div>}
                 {req.content && <div className="req-field" style={{ gridColumn: "1/-1" }}><div className="req-field-key">Текст</div><div style={{ maxHeight: 120, overflow: "auto", fontSize: ".78rem", lineHeight: 1.5 }}>{req.content}</div></div>}
               </>}
+
+              {type === "announcement" && <>
+                <div style={{ gridColumn: "1/-1", display: "flex", flexDirection: "column", gap: ".5rem" }}>
+                  <div className="req-field">
+                    <div className="req-field-key">Tekst obaveštenja</div>
+                    <div style={{ fontSize: ".92rem", fontFamily: "'Cormorant Garamond',serif", lineHeight: 1.6, color: "var(--ink)", marginTop: ".2rem" }}>{req.content}</div>
+                  </div>
+                  {req.expires_at && (
+                    <div className="req-field">
+                      <div className="req-field-key">Predloženi datum isteka</div>
+                      <div>{req.expires_at}</div>
+                    </div>
+                  )}
+                </div>
+              </>}
+
+              {req.admin_note && (
+                <div className="req-field" style={{ gridColumn: "1/-1", background: "#fffbe6", padding: ".4rem .6rem", border: "1px solid #ffe082" }}>
+                  <div className="req-field-key">Admin napomena</div>{req.admin_note}
+                </div>
+              )}
             </div>
 
-            <div className="req-card-foot" style={{ flexDirection: "column", gap: ".5rem" }}>
-              <input
-                className="form-input"
-                placeholder="Админ напомена (опционо)..."
-                value={noteMap[req.id] || ""}
-                onChange={e => setNoteMap(p => ({ ...p, [req.id]: e.target.value }))}
-                style={{ fontSize: ".72rem" }}
-              />
-              <div style={{ display: "flex", gap: ".5rem", justifyContent: "flex-end" }}>
-                <button className="btn btn-danger btn-sm" disabled={!!processing} onClick={() => handleDecision(req, "rejected")}>
-                  <Icon name="close" size={11} />Одбиј
-                </button>
-                <button className="btn btn-success btn-sm" disabled={!!processing} onClick={() => handleDecision(req, "approved")}>
-                  <Icon name="check" size={11} />Одобри
-                </button>
+            {isPending && (
+              <div className="req-card-foot" style={{ flexDirection: "column", gap: ".5rem" }}>
+                <input
+                  className="form-input"
+                  placeholder="Админ напомена (опционо)..."
+                  value={noteMap[req.id] || ""}
+                  onChange={e => setNoteMap(p => ({ ...p, [req.id]: e.target.value }))}
+                  style={{ fontSize: ".72rem" }}
+                />
+                <div style={{ display: "flex", gap: ".5rem", justifyContent: "flex-end" }}>
+                  <button className="btn btn-danger btn-sm" disabled={!!processing} onClick={() => handleDecision(req, "rejected")}>
+                    <Icon name="close" size={11} />Одбиј
+                  </button>
+                  <button className="btn btn-success btn-sm" disabled={!!processing} onClick={() => handleDecision(req, "approved")}>
+                    <Icon name="check" size={11} />Одобри
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         );
       })}
