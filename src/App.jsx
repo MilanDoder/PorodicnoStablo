@@ -48,7 +48,8 @@ export default function App() {
 
   // Brisi kes koji nije Supabase auth
   useEffect(() => {
-    Object.keys(localStorage).forEach(k => { if (!k.startsWith('sb-')) localStorage.removeItem(k); });
+    localStorage.clear();
+    //Object.keys(localStorage).forEach(k => { if (!k.startsWith('sb-')) localStorage.removeItem(k); });
   }, []);
 
   // Auth: koristimo SAMO onAuthStateChange koji okine i INITIAL_SESSION pri mount-u
