@@ -138,9 +138,14 @@ export default function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+      localStorage.clear(); // ako želiš da obrišeš sve
+
+  // očisti sessionStorage ako koristiš njega
+  sessionStorage.clear();
+    console.log("Odjava");
     // onAuthStateChange će postaviti user = null automatski
-    setView("tree");
-    setSelected(null);
+   // setView("tree");
+    //setSelected(null);
   };
 
   const handleExportPDF = () => {
