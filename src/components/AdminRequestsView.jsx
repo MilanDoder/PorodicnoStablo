@@ -68,6 +68,8 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
           title: req.title, content: req.content,
           cover_image: req.image_data || null, image_type: req.image_type || "image/jpeg",
           story_date: req.story_date || null,
+          have_pdf: req.have_pdf || false,
+          pdf_data: req.have_pdf ? (req.pdf_data || null) : null,
         });
       } else if (type === "announcement") {
         await supabase.from("announcements").insert({
@@ -243,6 +245,30 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
                 )}
                 {req.story_date && <div className="req-field"><div className="req-field-key">Датум</div>{new Date(req.story_date).toLocaleDateString("sr-Latn")}</div>}
                 {req.content && <div className="req-field" style={{ gridColumn: "1/-1" }}><div className="req-field-key">Текст</div><div style={{ maxHeight: 120, overflow: "auto", fontSize: ".78rem", lineHeight: 1.5 }}>{req.content}</div></div>}
+                {req.have_pdf && (
+                  <div className="req-field" style={{ gridColumn: "1/-1" }}>
+                    <div className="req-field-key">📄 PDF документ</div>
+                    {req.pdf_data ? (
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ marginTop: ".3rem" }}
+                        onClick={() => {
+                          const bytes = atob(req.pdf_data);
+                          const arr   = new Uint8Array(bytes.length);
+                          for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+                          const url = URL.createObjectURL(new Blob([arr], { type: "application/pdf" }));
+                          const a = document.createElement("a");
+                          a.href = url; a.download = `${req.title}.pdf`; a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                      >
+                        📄 Прегледај / Скини PDF
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: ".75rem", color: "#aaa" }}>PDF придружен захтјеву</span>
+                    )}
+                  </div>
+                )}
               </>}
 
               {type === "announcement" && <>
