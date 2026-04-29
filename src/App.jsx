@@ -50,9 +50,7 @@ export default function App() {
 
   // Briši keš koji nije Supabase auth (ne diramo sb-* tokene)
   useEffect(() => {
-    Object.keys(localStorage).forEach(key => {
-      if (!key.startsWith("sb-")) localStorage.removeItem(key);
-    });
+    localStorage.clear()
   }, []);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
