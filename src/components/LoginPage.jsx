@@ -3,21 +3,24 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
 
-export default function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState("");
+// onLogin prop više nije potreban — App.jsx sluša onAuthStateChange
+// koji se automatski okine nakon signInWithPassword
+export default function LoginPage() {
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) return;
     setLoading(true);
     setError("");
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-      if (authError) { setError("Погрешан имејл или лозинка."); return; }
-      const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
-      onLogin({ ...data.user, profile });
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) {
+        setError("Погрешан имејл или лозинка.");
+      }
+      // Ne radimo ništa više — onAuthStateChange u App.jsx će pokupiti sesiju
     } catch {
       setError("Грешка при повезивању.");
     } finally {
