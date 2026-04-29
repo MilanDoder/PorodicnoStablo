@@ -43,7 +43,8 @@ export default function App() {
   const [showModal, setShowModal]       = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [treeKey,       setTreeKey]       = useState(0);
-  const [showAnnForm,  setShowAnnForm]  = useState(false);
+  const [showAnnForm,     setShowAnnForm]     = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
   const initialized                     = useRef(false);
 
   const isAdmin = user?.profile?.role === "admin";
@@ -318,6 +319,11 @@ export default function App() {
                 <Icon name="plus" size={13} />Нови члан
               </button>
             )}
+            {!isAdmin && (
+              <button className="btn btn-primary" onClick={() => setShowRequestForm(true)}>
+                <Icon name="plus" size={13} />Предложи члана
+              </button>
+            )}
           </div>
         </div>
 
@@ -371,6 +377,20 @@ export default function App() {
         />
       )}
 
+
+      {showRequestForm && (
+        <div className="overlay" style={{ zIndex: 1200 }} onClick={e => e.target === e.currentTarget && setShowRequestForm(false)}>
+          <div className="modal" style={{ width: 580, maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+            <div className="modal-head">
+              <span className="modal-title">👤 Предложи новог члана</span>
+              <button className="modal-close" onClick={() => setShowRequestForm(false)}><Icon name="close" size={18} /></button>
+            </div>
+            <div style={{ overflowY: "auto", flex: 1 }}>
+              <RequestFormView user={user} members={members} onSuccess={() => setTimeout(() => setShowRequestForm(false), 2500)} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAnnForm && (
         <AnnouncementFormModal
