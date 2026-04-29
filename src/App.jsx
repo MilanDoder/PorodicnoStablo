@@ -43,6 +43,7 @@ export default function App() {
   const [showModal, setShowModal]       = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [treeKey,       setTreeKey]       = useState(0);
+  const [showAnnForm,  setShowAnnForm]  = useState(false);
   const initialized                     = useRef(false);
 
   const isAdmin = user?.profile?.role === "admin";
@@ -308,6 +309,9 @@ useEffect(() => {
             <button className="btn btn-ghost" onClick={handleExportPDF}>
               <Icon name="image" size={13} />PDF
             </button>
+            <button className="btn btn-ghost" onClick={() => setShowAnnForm(true)} title="Pošalji obaveštenje">
+              <Icon name="bell" size={13} />Obaveštenje
+            </button>
             {isAdmin && !["admin", "istorijat", "galerija"].includes(view) && (
               <button className="btn btn-primary" onClick={() => openModal(null)}>
                 <Icon name="plus" size={13} />Нови члан
@@ -365,6 +369,117 @@ useEffect(() => {
           onClose={() => { setShowModal(false); setEditMember(null); }}
         />
       )}
+
+      {showAnnForm && (
+        <AnnouncementFormModal
+          isAdmin={isAdmin}
+          user={user}
+          onClose={() => setShowAnnForm(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function AnnouncementFormModal({ isAdmin, user, onClose }) {
+  const [content,    setContent]    = useState("");
+  const [expiresAt,  setExpiresAt]  = useState("");
+  const [saving,     setSaving]     = useState(false);
+  const [success,    setSuccess]    = useState(false);
+  const [error,      setError]      = useState("");
+
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  const handleSave = async () => {
+    setError("");
+    if (!content.trim()) { setError("Tekst ne sme biti prazan."); return; }
+    if (isAdmin && !expiresAt) { setError("Unesite datum isteka."); return; }
+    setSaving(true);
+    try {
+      let err;
+      if (isAdmin) {
+        ({ error: err } = await supabase.from("announcements").insert({
+          message:    content.trim(),
+          expires_at: expiresAt,
+          created_by: user?.id ?? null,
+        }));
+      } else {
+        ({ error: err } = await supabase.from("data_requests").insert({
+          request_type: "announcement",
+          title:        "Predlog obaveštenja",
+          content:      content.trim(),
+          expires_at:   expiresAt || null,
+          status:       "pending",
+          user_id:      user.id,
+          user_email:   user.email,
+        }));
+      }
+      if (err) throw err;
+      setSuccess(true);
+      setContent("");
+      setExpiresAt("");
+      setTimeout(() => onClose(), 2200);
+    } catch (e) {
+      setError(e.message || "Greška pri slanju.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="overlay" style={{ zIndex: 1200 }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ width: 480 }}>
+        <div className="modal-head">
+          <span className="modal-title">
+            {isAdmin ? "📢 Novo obaveštenje" : "📢 Predloži obaveštenje"}
+          </span>
+          <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
+        </div>
+        <div className="modal-body">
+          {!isAdmin && (
+            <p style={{ fontSize: ".78rem", color: "#888", marginBottom: "1rem", lineHeight: 1.6 }}>
+              Vaš predlog će biti poslat administratoru na odobrenje pre nego što se prikaže svim korisnicima.
+            </p>
+          )}
+          {success ? (
+            <div style={{ textAlign: "center", padding: "1.5rem 0", color: "#2e7d32", fontSize: "1rem" }}>
+              ✓ {isAdmin ? "Obaveštenje je objavljeno!" : "Predlog je uspešno poslat!"}
+            </div>
+          ) : (
+            <div className="form-grid">
+              <div className="form-field full">
+                <label className="form-label">Tekst obaveštenja *</label>
+                <textarea
+                  className="form-textarea"
+                  rows={4}
+                  placeholder="Unesite tekst koji će se prikazivati u traci..."
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label">{isAdmin ? "Datum isteka *" : "Predloženi datum isteka"}</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  min={todayStr}
+                  value={expiresAt}
+                  onChange={e => setExpiresAt(e.target.value)}
+                />
+              </div>
+              {error && <div className="form-field full" style={{ color: "var(--rust)", fontSize: ".75rem" }}>⚠ {error}</div>}
+            </div>
+          )}
+        </div>
+        {!success && (
+          <div className="modal-foot">
+            <button className="btn btn-ghost" onClick={onClose}>Otkaži</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? "Slanje..." : isAdmin ? "Objavi" : "Pošalji na odobrenje"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
