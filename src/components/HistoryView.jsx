@@ -148,7 +148,8 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
         const { error: e } = await supabase.from("history_stories").insert({ ...payload, created_by: user.id });
         if (e) throw e;
       } else {
-        const { error: e } = await supabase.from("data_requests").insert({
+        // Prvo inserta bez pdf_data da izbjegnemo prevelik payload
+        const { data: inserted, error: e } = await supabase.from("data_requests").insert({
           request_type: "history",
           title:        payload.title,
           content:      payload.content,
@@ -156,18 +157,28 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
           image_data:   imgData || null,
           image_type:   imgType,
           have_pdf:     havePdf,
-          pdf_data:     havePdf ? pdfData : null,
+          pdf_data:     null, // dodajemo u sljedecem koraku
           status:       "pending",
           user_id:      user.id,
           user_email:   user.email,
-        });
+        }).select("id").single();
         if (e) throw e;
+
+        // Ako ima PDF, update samo pdf_data kolonu posebno
+        if (havePdf && pdfData && inserted?.id) {
+          const { error: e2 } = await supabase
+            .from("data_requests")
+            .update({ pdf_data: pdfData })
+            .eq("id", inserted.id);
+          if (e2) throw e2;
+        }
       }
 
       onSaved();
       onClose();
     } catch (err) {
-      setError(err.message || "Грешка при чувању.");
+      console.error("handleSave greška:", err);
+      setError(err.message || err.details || err.hint || JSON.stringify(err) || "Грешка при чувању.");
     } finally {
       setSaving(false);
     }
