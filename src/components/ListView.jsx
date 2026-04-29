@@ -171,11 +171,11 @@ export default function ListView({ members, isAdmin, onEdit, onDelete, onAddMemb
                           <Icon name="trash" size={11} />
                         </button>
                       </>
-                    ) : (
+                    ) : user ? (
                       <button className="btn btn-ghost btn-sm" onClick={() => setEditRequest(m)}>
                         <Icon name="edit" size={11} />Измени
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -232,8 +232,8 @@ function EditRequestModal({ member, user, onClose }) {
         edited_member_id: member.id,
         title:            `Измјена: ${member.first_name} ${member.last_name}`,
         status:           "pending",
-        user_id:          user.id,
-        user_email:       user.email,
+        user_id:          user?.id,
+        user_email:       user?.email,
         first_name:       f.first_name.trim(),
         last_name:        f.last_name.trim(),
         birth_year:       f.birth_year ? parseInt(f.birth_year) : null,
