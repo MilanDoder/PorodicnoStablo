@@ -107,7 +107,7 @@ function MiniNode({ member, subset, selected, onSelect }) {
   );
 }
 
-export default function MemberTreeModal({ root, allMembers, onClose, isAdmin, onAddMember }) {
+export default function MemberTreeModal({ root, allMembers, onClose, isAdmin, onAddMember, onEdit }) {
   const [scale, setScale]       = useState(0.85);
   const [selected, setSelected] = useState(null);
   const canvasRef = useRef(null);
@@ -221,6 +221,16 @@ export default function MemberTreeModal({ root, allMembers, onClose, isAdmin, on
                 title="Додај дијете/потомка овог члана"
               >
                 <Icon name="plus" size={11} />Додај потомка
+              </button>
+            )}
+            {isAdmin && onEdit && (
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ fontSize: ".65rem", padding: ".25rem .65rem", ...(onAddMember ? {} : { marginLeft: "auto" }) }}
+                onClick={() => { onEdit(selected); setSelected(null); onClose(); }}
+                title="Измијени податке о члану"
+              >
+                <Icon name="edit" size={11} />Уреди
               </button>
             )}
             <button className="mtm-info-close" onClick={() => setSelected(null)}><Icon name="close" size={12} /></button>
