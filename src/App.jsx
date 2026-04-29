@@ -6,6 +6,7 @@ import LoginPage from "./components/LoginPage";
 import TreeView from "./components/TreeView";
 import ListView from "./components/ListView";
 import AnnouncementBanner from "./components/AnnouncementBanner";
+import ProfileModal from "./components/ProfileModal";
 import MemberModal from "./components/MemberModal";
 
 const AdminPanel      = lazy(() => import("./components/AdminPanel"));
@@ -44,6 +45,7 @@ export default function App() {
   const [pendingCount, setPendingCount] = useState(0);
   const [treeKey,       setTreeKey]       = useState(0);
   const [showAnnForm,  setShowAnnForm]  = useState(false);
+  const [showProfile,  setShowProfile]  = useState(false);
   const initialized                     = useRef(false);
 
   const isAdmin = user?.profile?.role === "admin";
@@ -265,8 +267,11 @@ useEffect(() => {
             <div className="sidebar-sub">Породична архива</div>
           </div>
         </div>
-        <div className="sidebar-user">
-          <div className="sidebar-avatar">{displayName[0]?.toUpperCase()}</div>
+        <div className="sidebar-user" onClick={() => setShowProfile(true)} title="Измијени профил" style={{ cursor: "pointer" }}>
+          <div className="sidebar-avatar" style={{ position: "relative" }}>
+            {displayName[0]?.toUpperCase()}
+            <span style={{ position: "absolute", bottom: -2, right: -2, background: "var(--gold)", borderRadius: "50%", width: 14, height: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: ".5rem", color: "white" }}>✎</span>
+          </div>
           <div>
             <div className="sidebar-username">{displayName}</div>
             <div className="sidebar-role">{isAdmin ? "Администратор" : "Корисник"}</div>
@@ -352,7 +357,7 @@ useEffect(() => {
               </>
             );
           })()}
-          {view === "list"      && <ListView members={members} isAdmin={isAdmin} onEdit={openModal} onDelete={handleDelete} />}
+          {view === "list"      && <ListView members={members} isAdmin={isAdmin} onEdit={openModal} onDelete={handleDelete} onAddMember={(parent) => { setEditMember({ parent_ids: [parent.id], generational_line: parent.generational_line ? parent.generational_line + 1 : null }); setShowModal(true); }} />}
           {view === "admin"     && isAdmin  && <AdminPanel members={members} currentUser={user} onMemberAdded={() => { loadMembers(); loadPendingCount(); }} />}
           {view === "zahtjev"   && !isAdmin && <RequestFormView user={user} members={members} />}
           {view === "istorijat" && <HistoryView user={user} isAdmin={isAdmin} />}
@@ -367,6 +372,17 @@ useEffect(() => {
           members={members}
           onSave={handleSaveMember}
           onClose={() => { setShowModal(false); setEditMember(null); }}
+        />
+      )}
+
+      {showProfile && (
+        <ProfileModal
+          user={user}
+          onClose={() => setShowProfile(false)}
+          onUpdated={async () => {
+            const profile = await fetchProfile(user.id);
+            setUser(u => ({ ...u, profile }));
+          }}
         />
       )}
 
