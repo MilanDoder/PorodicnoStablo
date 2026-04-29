@@ -382,7 +382,9 @@ export default function App() {
               <button className="modal-close" onClick={() => setShowRequestForm(false)}><Icon name="close" size={18} /></button>
             </div>
             <div style={{ overflowY: "auto", flex: 1 }}>
-              <RequestFormView user={user} members={members} onSuccess={() => setTimeout(() => setShowRequestForm(false), 2500)} />
+              <Suspense fallback={<div className="loading-screen"><Icon name="spinner" size={28} /></div>}>
+                <RequestFormView user={user} members={members} onSuccess={() => setTimeout(() => setShowRequestForm(false), 2500)} />
+              </Suspense>
             </div>
           </div>
         </div>
