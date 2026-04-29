@@ -251,7 +251,7 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
                     }}
                     style={{ width: 15, height: 15, accentColor: "var(--gold-dark)", cursor: "pointer" }}
                   />
-                  <span className="form-label" style={{ margin: 0 }}>Документа (PDF) максимално до 1МB</span>
+                  <span className="form-label" style={{ margin: 0 }}>Документа (PDF) максимално до 1 MB</span>
                 </label>
               </div>
 
