@@ -50,7 +50,9 @@ export default function App() {
 
   // Briši keš koji nije Supabase auth (ne diramo sb-* tokene)
   useEffect(() => {
-localStorage.clear()
+    Object.keys(localStorage).forEach(key => {
+      if (!key.startsWith("sb-")) localStorage.removeItem(key);
+    });
   }, []);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -353,7 +355,7 @@ localStorage.clear()
               </>
             );
           })()}
-          {view === "list"      && <ListView members={members} isAdmin={isAdmin} onEdit={openModal} onDelete={handleDelete} onAddMember={(parent) => { setEditMember({ parent_ids: [parent.id], generational_line: parent.generational_line ? parent.generational_line + 1 : null }); setShowModal(true); }} />}
+          {view === "list"      && <ListView members={members} isAdmin={isAdmin} user={user} onEdit={openModal} onDelete={handleDelete} onAddMember={(parent) => { setEditMember({ parent_ids: [parent.id], generational_line: parent.generational_line ? parent.generational_line + 1 : null }); setShowModal(true); }} />}
           {view === "admin"     && isAdmin  && <AdminPanel members={members} currentUser={user} onMemberAdded={() => { loadMembers(); loadPendingCount(); }} />}
           {view === "zahtjev"   && !isAdmin && <RequestFormView user={user} members={members} />}
           {view === "istorijat" && <HistoryView user={user} isAdmin={isAdmin} />}
