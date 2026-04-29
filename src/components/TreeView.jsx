@@ -22,16 +22,16 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
   const [reqForm,       setReqForm]       = useState(EMPTY_REQ);
   const [reqSaving,     setReqSaving]     = useState(false);
   const [reqSuccess,    setReqSuccess]    = useState(false);
+  const [editReqMember, setEditReqMember] = useState(null);
   const [scale,         setScale]         = useState(DEFAULT_SCALE);
   const [horizMode,     setHorizMode]     = useState(false);
 
   const canvasRef   = useRef(null);
   const innerRef    = useRef(null);
   const mmCanvasRef = useRef(null);
-
-  const dragging  = useRef(false);
-  const startPos  = useRef({ x: 0, y: 0 });
-  const scrollPos = useRef({ left: 0, top: 0 });
+  const dragging    = useRef(false);
+  const startPos    = useRef({ x: 0, y: 0 });
+  const scrollPos   = useRef({ left: 0, top: 0 });
 
   const onMouseDown = (e) => {
     if (e.button !== 0) return;
@@ -81,7 +81,6 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
     if (e.touches.length === 0) { lastTouches.current = null; lastDist.current = null; }
   };
 
-  // ── Popravljeno centriranje ───────────────────────────────────────────────
   const scrollToMember = useCallback((memberId) => {
     if (!canvasRef.current || !innerRef.current) return;
     const el = innerRef.current.querySelector(`[data-member-id="${memberId}"]`);
@@ -104,34 +103,21 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
     const ctx = canvas.getContext("2d");
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
-
-    // Scrollabilna povrsina = sve sto main moze da scrolluje
     const totalW = main.scrollWidth;
     const totalH = main.scrollHeight;
     if (!totalW || !totalH) return;
-
     const rx = W / totalW;
     const ry = H / totalH;
-
-    // Cvorovi: pozicija u scroll koordinatama
     members.forEach(m => {
       const el = inner.querySelector(`[data-member-id="${m.id}"]`);
       if (!el) return;
       const r = el.getBoundingClientRect();
       const mainRect = main.getBoundingClientRect();
-      // Pozicija u scroll prostoru
       const nodeScrollX = r.left - mainRect.left + main.scrollLeft;
       const nodeScrollY = r.top  - mainRect.top  + main.scrollTop;
       ctx.fillStyle = m.gender === "male" ? "#4a7fa8" : "#b06080";
-      ctx.fillRect(
-        nodeScrollX * rx,
-        nodeScrollY * ry,
-        Math.max(4, r.width  * rx),
-        Math.max(3, r.height * ry)
-      );
+      ctx.fillRect(nodeScrollX * rx, nodeScrollY * ry, Math.max(4, r.width * rx), Math.max(3, r.height * ry));
     });
-
-    // Viewport pravougaonik
     const vx = main.scrollLeft * rx;
     const vy = main.scrollTop  * ry;
     const vw = main.clientWidth  * rx;
@@ -141,17 +127,11 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
     ctx.fillStyle = "rgba(200,150,62,0.1)"; ctx.fillRect(vx, vy, vw, vh);
   }, [members, scale]);
 
-  // Scroll to root node on mount and mode change
   const scrollToRoot = useCallback(() => {
     const main = canvasRef.current;
     const inner = innerRef.current;
     if (!main || !inner) return;
-
-    // Nadji root clanove direktno iz podataka (bez roditelja u stablu)
-    const roots = members.filter(
-      m => !(m.parent_ids || []).some(pid => members.find(x => x.id === pid))
-    );
-    // Uzmi primarni root (muski, ili prvi ako nema)
+    const roots = members.filter(m => !(m.parent_ids || []).some(pid => members.find(x => x.id === pid)));
     const primaryRoots = roots.filter(m => {
       if (!m.spouse_id) return true;
       const sp = members.find(x => x.id === m.spouse_id);
@@ -159,27 +139,20 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
     });
     const targetId = primaryRoots.length ? primaryRoots[0].id : (roots[0]?.id ?? null);
     if (!targetId) return;
-
     const el = inner.querySelector(`[data-member-id="${targetId}"]`);
     if (!el) return;
-
     const mainRect = main.getBoundingClientRect();
     const r = el.getBoundingClientRect();
-    // Scrolluj tako da root bude u gornjem-lijevom uglu sa paddingom
-    const targetScrollLeft = (r.left - mainRect.left + main.scrollLeft) - 60;
-    const targetScrollTop  = (r.top  - mainRect.top  + main.scrollTop)  - 60;
-    main.scrollTo({ left: Math.max(0, targetScrollLeft), top: Math.max(0, targetScrollTop), behavior: "smooth" });
+    main.scrollTo({
+      left: Math.max(0, (r.left - mainRect.left + main.scrollLeft) - 60),
+      top:  Math.max(0, (r.top  - mainRect.top  + main.scrollTop)  - 60),
+      behavior: "smooth",
+    });
   }, [members]);
 
   useEffect(() => {
-    // Cekamo da se DOM potpuno renderuje prije scrollanja
-    // requestAnimationFrame x2 garantuje da su layout i paint završeni
     let raf1, raf2;
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        scrollToRoot();
-      });
-    });
+    raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(() => { scrollToRoot(); }); });
     return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
   }, [horizMode, members.length, scrollToRoot]);
 
@@ -246,49 +219,23 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
 
   return (
     <div className="tree-wrap">
-      {/* ── Toggle dugme ─────────────────────────────────────────────────── */}
-      <div style={{
-        position: "absolute", top: "0.6rem", left: "1rem", zIndex: 20,
-        display: "flex", gap: "0.4rem"
-      }}>
-        <button
-          className={`btn btn-sm ${!horizMode ? "btn-primary" : "btn-ghost"}`}
-          onClick={() => setHorizMode(false)}
-          title="Вертикални приказ"
-        >
+      <div style={{ position: "absolute", top: "0.6rem", left: "1rem", zIndex: 20, display: "flex", gap: "0.4rem" }}>
+        <button className={`btn btn-sm ${!horizMode ? "btn-primary" : "btn-ghost"}`} onClick={() => setHorizMode(false)} title="Вертикални приказ">
           <Icon name="tree" size={13} /> Вертикално
         </button>
-        <button
-          className={`btn btn-sm ${horizMode ? "btn-primary" : "btn-ghost"}`}
-          onClick={() => setHorizMode(true)}
-          title="Хоризонтални приказ"
-        >
+        <button className={`btn btn-sm ${horizMode ? "btn-primary" : "btn-ghost"}`} onClick={() => setHorizMode(true)} title="Хоризонтални приказ">
           <Icon name="list" size={13} /> Хоризонтално
         </button>
       </div>
 
-      <div
-        className="tree-canvas"
-        ref={canvasRef}
-        style={{ cursor: "grab" }}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
+      <div className="tree-canvas" ref={canvasRef} style={{ cursor: "grab" }}
+        onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
       >
-        <div
-          className="tree-inner"
-          ref={innerRef}
-          style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}
-        >
+        <div className="tree-inner" ref={innerRef} style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}>
           {horizMode ? (
-            /* ── HORIZONTALNI PRIKAZ ── */
             <HorizTree members={members} selected={selected} onSelect={onSelect} />
           ) : (
-            /* ── VERTIKALNI PRIKAZ ── */
             <>
               <div style={{ display: "flex", gap: "60px", alignItems: "flex-start", flexWrap: "nowrap", justifyContent: "center" }}>
                 {primaryRoots.map(root => (
@@ -305,6 +252,7 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
                       onEdit={onEdit}
                       onAddChild={setAddChildOf}
                       onRequestChild={handleRequestChild}
+                      onRequestEdit={m => setEditReqMember(m)}
                     />
                   </div>
                 ))}
@@ -321,20 +269,11 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
         </div>
       </div>
 
-      {/* Kontrole zoom */}
       <div className="tree-controls">
         <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.min(MAX_SCALE, +(s + 0.1).toFixed(2)))} title="Увећај"><Icon name="zoomin" size={16} /></button>
         <div className="zoom-slider-wrap">
-          <input
-            type="range"
-            className="zoom-slider"
-            min={MIN_SCALE}
-            max={MAX_SCALE}
-            step={0.05}
-            value={scale}
-            onChange={e => setScale(parseFloat(e.target.value))}
-            title="Зум"
-          />
+          <input type="range" className="zoom-slider" min={MIN_SCALE} max={MAX_SCALE} step={0.05} value={scale}
+            onChange={e => setScale(parseFloat(e.target.value))} title="Зум" />
           <span className="zoom-label">{Math.round(scale * 100)}%</span>
         </div>
         <button className="tree-ctrl-btn" onClick={() => setScale(s => Math.max(MIN_SCALE, +(s - 0.1).toFixed(2)))} title="Умањи"><Icon name="zoomout" size={16} /></button>
@@ -355,6 +294,7 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
         onNavigateTo={scrollToMember}
         onSelect={onSelect}
         onRequestChild={!isAdmin ? handleRequestChild : undefined}
+        onRequestEdit={!isAdmin ? m => setEditReqMember(m) : undefined}
       />
 
       {addChildOf && (
@@ -366,12 +306,13 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
         />
       )}
 
+      {/* Modal: Предложи дијете */}
       {requestParent && (
         <div className="overlay" onClick={e => { if (e.target === e.currentTarget) setRequestParent(null); }}>
           <div className="modal" style={{ width: 480 }}>
             <div className="modal-head">
               <span className="modal-title">Предложи дијете за: {requestParent.first_name} {requestParent.last_name}</span>
-              <button className="modal-close" onClick={() => setRequestParent(null)}><Icon name="x" size={16} /></button>
+              <button className="modal-close" onClick={() => setRequestParent(null)}><Icon name="close" size={16} /></button>
             </div>
             <div className="modal-body">
               {reqSuccess ? (
@@ -420,6 +361,117 @@ export default function TreeView({ members, isAdmin, user, onEdit, onSaveMember,
           </div>
         </div>
       )}
+
+      {/* Modal: Предложи измјену — ista logika kao u ListView */}
+      {editReqMember && (
+        <EditRequestModal
+          member={editReqMember}
+          user={user}
+          onClose={() => setEditReqMember(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Kopirana komponenta iz ListView ──────────────────────────────────────────
+function EditRequestModal({ member, user, onClose }) {
+  const [f, setF] = useState({
+    first_name:  member.first_name  || "",
+    last_name:   member.last_name   || FAMILY_SURNAME,
+    birth_year:  member.birth_year  || "",
+    death_year:  member.death_year  || "",
+    notes:       member.notes       || "",
+    spouse_name: "",
+  });
+  const [saving,  setSaving]  = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error,   setError]   = useState("");
+
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+
+  const handleSubmit = async () => {
+    if (!f.first_name.trim()) { setError("Ime је обавезно."); return; }
+    setSaving(true); setError("");
+    try {
+      const { error: err } = await supabase.from("data_requests").insert({
+        request_type:     "member_edit",
+        edited_member_id: member.id,
+        title:            `Измјена: ${member.first_name} ${member.last_name}`,
+        status:           "pending",
+        user_id:          user?.id,
+        user_email:       user?.email,
+        first_name:       f.first_name.trim(),
+        last_name:        f.last_name.trim(),
+        birth_year:       f.birth_year ? parseInt(f.birth_year) : null,
+        death_year:       f.death_year ? parseInt(f.death_year) : null,
+        notes:            f.notes || null,
+        spouse_name:      f.spouse_name || null,
+      });
+      if (err) throw err;
+      setSuccess(true);
+      setTimeout(() => onClose(), 2000);
+    } catch (e) {
+      setError(e.message || "Грешка при слању.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="overlay" style={{ zIndex: 1200 }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ width: 500 }}>
+        <div className="modal-head">
+          <span className="modal-title">✏️ Предложи измјену — {member.first_name} {member.last_name}</span>
+          <button className="modal-close" onClick={onClose}><Icon name="close" size={18} /></button>
+        </div>
+        <div className="modal-body">
+          <p style={{ fontSize: ".75rem", color: "#888", marginBottom: "1rem", lineHeight: 1.6 }}>
+            Промјене које унесете биће послате администратору на одобрење и неће бити одмах видљиве у стаблу.
+          </p>
+          {success ? (
+            <div style={{ textAlign: "center", padding: "1.5rem 0", color: "#2e7d32", fontSize: "1rem" }}>
+              ✓ Захтјев је послат администратору на одобрење!
+            </div>
+          ) : (
+            <div className="form-grid">
+              <div className="form-field">
+                <label className="form-label">Ime *</label>
+                <input className="form-input" value={f.first_name} onChange={e => set("first_name", e.target.value)} />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Презиме</label>
+                <input className="form-input" value={f.last_name} onChange={e => set("last_name", e.target.value)} />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Год. рођења</label>
+                <input className="form-input" type="number" value={f.birth_year} onChange={e => set("birth_year", e.target.value)} placeholder="нпр. 1980" />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Год. смрти</label>
+                <input className="form-input" type="number" value={f.death_year} onChange={e => set("death_year", e.target.value)} placeholder="оставити празно ако је жив/а" />
+              </div>
+              <div className="form-field full">
+                <label className="form-label">Супружник</label>
+                <input className="form-input" value={f.spouse_name} onChange={e => set("spouse_name", e.target.value)} placeholder="Ime и презиме супружника" />
+              </div>
+              <div className="form-field full">
+                <label className="form-label">Напомена / Разлог измјене</label>
+                <textarea className="form-textarea" rows={3} value={f.notes} onChange={e => set("notes", e.target.value)} placeholder="Објасните зашто предлажете ову измјену..." />
+              </div>
+            </div>
+          )}
+          {error && <div style={{ color: "var(--rust)", fontSize: ".75rem", marginTop: ".5rem" }}>⚠ {error}</div>}
+        </div>
+        {!success && (
+          <div className="modal-foot">
+            <button className="btn btn-ghost" onClick={onClose}>Откажи</button>
+            <button className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
+              {saving ? "Слање..." : "Пошаљи на одобрење"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
