@@ -86,10 +86,10 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
   };
 
   const handleClearResolved = async () => {
-    if (!window.confirm("Obrisati sve odobrene i odbijene zahteve? Ova radnja se ne može poništiti.")) return;
     setClearing(true);
     await supabase.from("data_requests").delete().in("status", ["approved", "rejected"]);
     setClearing(false);
+    setShowConfirm(false);
     loadRequests();
   };
 
@@ -113,8 +113,8 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
       <div style={{ display: "flex", gap: ".4rem", marginBottom: ".75rem", borderBottom: "1px solid rgba(200,150,62,.12)", paddingBottom: ".75rem", alignItems: "center", flexWrap: "wrap" }}>
         {[
           { id: "pending",  label: "На чекању" },
-          { id: "approved", label: "Odobreni" },
-          { id: "rejected", label: "Odbijeni" },
+          { id: "approved", label: "Одобрени" },
+          { id: "rejected", label: "Одбијени" },
           { id: "all",      label: "Сви" },
         ].map(s => (
           <button key={s.id}
@@ -123,17 +123,16 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
           >{s.label}</button>
         ))}
 
-        {resolvedCount > 0 && (
-          <button
-            className="btn btn-sm btn-danger"
-            style={{ marginLeft: "auto" }}
-            onClick={handleClearResolved}
-            disabled={clearing}
-          >
-            <Icon name="trash" size={11} />
-            {clearing ? "Brisanje..." : `Obriši odobrene/odbijene (${resolvedCount})`}
-          </button>
-        )}
+        <button
+          className="btn btn-sm btn-danger"
+          style={{ marginLeft: "auto", opacity: resolvedCount === 0 ? .4 : 1 }}
+          onClick={() => resolvedCount > 0 && setShowConfirm(true)}
+          disabled={resolvedCount === 0 || clearing}
+          title={resolvedCount === 0 ? "Нема ријешених захтјева" : ""}
+        >
+          <Icon name="trash" size={11} />
+          Обриши ријешене ({resolvedCount})
+        </button>
       </div>
 
       {/* Type filter */}
@@ -289,6 +288,35 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
           </div>
         );
       })}
+
+      {/* Confirm modal */}
+      {showConfirm && (
+        <div className="overlay" style={{ zIndex: 1300 }} onClick={e => e.target === e.currentTarget && setShowConfirm(false)}>
+          <div className="modal" style={{ width: 420, textAlign: "center" }}>
+            <div className="modal-head" style={{ justifyContent: "center", borderBottom: "none", paddingBottom: 0 }}>
+              <span style={{ fontSize: "2rem" }}>🗑️</span>
+            </div>
+            <div className="modal-body" style={{ paddingTop: ".5rem" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "1.2rem", marginBottom: ".75rem", color: "var(--ink)" }}>
+                Обришите ријешене захтјеве
+              </div>
+              <p style={{ fontSize: ".82rem", color: "#666", lineHeight: 1.6, marginBottom: 0 }}>
+                Да ли сте сигурни да желите да избришете свих <strong>{resolvedCount}</strong> odobrenih/odbijenih захтјева из базе?
+                <br />
+                <span style={{ color: "var(--rust)", fontSize: ".75rem" }}>Ова радња се не може поништити.</span>
+              </p>
+            </div>
+            <div className="modal-foot" style={{ justifyContent: "center", gap: "1rem" }}>
+              <button className="btn btn-ghost" onClick={() => setShowConfirm(false)} style={{ minWidth: 90 }}>
+                Не
+              </button>
+              <button className="btn btn-danger" onClick={handleClearResolved} disabled={clearing} style={{ minWidth: 90 }}>
+                {clearing ? "Брисање..." : "Да, обриши"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
