@@ -3,6 +3,32 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import Icon from "./Icon";
 
+const PDF_BUCKET = "history-pdfs";
+
+// ── Storage helpers ───────────────────────────────────────────────────────────
+async function uploadPdf(file, storyTitle) {
+  // Jedinstveno ime fajla: timestamp + ociscen naslov
+  const clean = storyTitle.trim().slice(0, 40).replace(/[^a-zA-Z0-9а-шА-Ш\s]/g, "").replace(/\s+/g, "_");
+  const path  = `${Date.now()}_${clean}.pdf`;
+  const { error } = await supabase.storage.from(PDF_BUCKET).upload(path, file, {
+    contentType: "application/pdf",
+    upsert: false,
+  });
+  if (error) throw error;
+  return path;
+}
+
+async function deletePdf(path) {
+  if (!path) return;
+  await supabase.storage.from(PDF_BUCKET).remove([path]);
+}
+
+function getPdfUrl(path) {
+  if (!path) return null;
+  const { data } = supabase.storage.from(PDF_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
 function fileToBase64(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
@@ -12,21 +38,10 @@ function fileToBase64(file) {
   });
 }
 
-function downloadPdf(base64Data, title) {
-  const byteChars = atob(base64Data);
-  const byteArr   = new Uint8Array(byteChars.length);
-  for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
-  const blob = new Blob([byteArr], { type: "application/pdf" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `${title}.pdf`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 // ── StoryModal ────────────────────────────────────────────────────────────────
 function StoryModal({ item, onClose }) {
+  const pdfUrl = getPdfUrl(item.pdf_path);
+
   return (
     <div className="overlay" style={{ zIndex: 1100 }} onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="story-modal">
@@ -53,16 +68,18 @@ function StoryModal({ item, onClose }) {
           )}
           <div className="story-modal-content">{item.content}</div>
 
-          {item.have_pdf && item.pdf_data && (
+          {pdfUrl && (
             <div style={{ marginTop: "1.25rem", paddingTop: "1rem", borderTop: "1px solid rgba(200,150,62,.15)" }}>
-              <button
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
                 className="btn btn-ghost"
-                style={{ display: "inline-flex", alignItems: "center", gap: ".4rem" }}
-                onClick={() => downloadPdf(item.pdf_data, item.title)}
+                style={{ display: "inline-flex", alignItems: "center", gap: ".4rem", textDecoration: "none" }}
               >
-                <Icon name="image" size={14} />
-                Скини PDF документ
-              </button>
+                <Icon name="image" size={14} />Скини PDF документ
+              </a>
             </div>
           )}
         </div>
@@ -81,13 +98,17 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
   const [imgData,  setImgData]  = useState(item?.cover_image || null);
   const [imgType,  setImgType]  = useState(item?.image_type  || "image/jpeg");
   const [preview,  setPreview]  = useState(item?.cover_image ? `data:${item.image_type};base64,${item.cover_image}` : null);
-  const [havePdf,  setHavePdf]  = useState(item?.have_pdf  || false);
-  const [pdfData,  setPdfData]  = useState(item?.pdf_data  || null);
-  const [pdfName,  setPdfName]  = useState(null);
-  const [pdfSize,  setPdfSize]  = useState(null);
-  const [saving,   setSaving]   = useState(false);
-  const [success,  setSuccess]  = useState(false);
-  const [error,    setError]    = useState("");
+
+  // PDF — čuvamo File objekat, ne base64
+  const [havePdf,   setHavePdf]   = useState(item?.have_pdf  || false);
+  const [pdfFile,   setPdfFile]   = useState(null);   // novi fajl za upload
+  const [pdfName,   setPdfName]   = useState(item?.pdf_path ? item.pdf_path.split("_").slice(1).join("_") : null);
+  const [pdfSize,   setPdfSize]   = useState(null);
+  const [existPath, setExistPath] = useState(item?.pdf_path || null); // vec uploadovan path
+
+  const [saving,  setSaving]  = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error,   setError]   = useState("");
 
   const imgRef = useRef();
   const pdfRef = useRef();
@@ -103,12 +124,11 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
     setError("");
   };
 
-  const handlePdfFile = async (e) => {
+  const handlePdfFile = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { setError("PDF мора бити мањи од 10MB"); return; }
-    const b64 = await fileToBase64(file);
-    setPdfData(b64);
+    if (file.size > 50 * 1024 * 1024) { setError("PDF мора бити мањи од 50MB"); return; }
+    setPdfFile(file);
     setPdfName(file.name);
     setPdfSize((file.size / 1024).toFixed(0));
     setHavePdf(true);
@@ -116,10 +136,11 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
   };
 
   const handleRemovePdf = () => {
-    setPdfData(null);
+    setPdfFile(null);
     setPdfName(null);
     setPdfSize(null);
     setHavePdf(false);
+    setExistPath(null);
     if (pdfRef.current) pdfRef.current.value = "";
   };
 
@@ -129,6 +150,21 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
     setError("");
 
     try {
+      let pdfPath = existPath; // zadrzavamo stari path ako nema novog fajla
+
+      // Upload novog PDF-a u Storage ako je odabran
+      if (pdfFile) {
+        // Obrisi stari fajl ako postoji (edit slucaj)
+        if (existPath) await deletePdf(existPath);
+        pdfPath = await uploadPdf(pdfFile, title.trim());
+      }
+
+      // Ako je uklonjen PDF, obrisi iz Storage-a
+      if (!havePdf && existPath) {
+        await deletePdf(existPath);
+        pdfPath = null;
+      }
+
       const payload = {
         title:       title.trim(),
         content:     content.trim(),
@@ -136,7 +172,7 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
         cover_image: imgData || null,
         image_type:  imgType,
         have_pdf:    havePdf,
-        pdf_data:    havePdf ? pdfData : null,
+        pdf_path:    havePdf ? pdfPath : null,
       };
 
       if (isEdit) {
@@ -152,7 +188,8 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
         onClose();
 
       } else {
-        // Korisnik — sve u jednom INSERT-u
+        // Korisnik — šalje na odobrenje
+        // PDF je vec u Storage-u, u data_requests cuvamo samo putanju
         const { error: e } = await supabase.from("data_requests").insert({
           request_type: "history",
           title:        payload.title,
@@ -161,14 +198,13 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
           image_data:   imgData || null,
           image_type:   imgType,
           have_pdf:     havePdf,
-          pdf_data:     havePdf ? pdfData : null,
+          pdf_path:     havePdf ? pdfPath : null, // samo putanja, ne base64!
           status:       "pending",
           user_id:      user.id,
           user_email:   user.email,
         });
         if (e) throw e;
 
-        // Prikaži success ekran, zatvori nakon 2.5s
         onSaved();
         setSuccess(true);
         setTimeout(() => onClose(), 2500);
@@ -183,6 +219,8 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
     }
   };
 
+  const hasPdfSelected = havePdf && (pdfFile || existPath);
+
   return (
     <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ width: 540 }}>
@@ -195,7 +233,6 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
 
         <div className="modal-body">
           {success ? (
-            // ── Success ekran ─────────────────────────────────────────────
             <div style={{ textAlign: "center", padding: "2.5rem 1rem" }}>
               <div style={{ fontSize: "2.8rem", marginBottom: ".75rem" }}>✓</div>
               <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "1.3rem", fontWeight: 600, color: "var(--ink)", marginBottom: ".5rem" }}>
@@ -207,7 +244,6 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
               </div>
             </div>
           ) : (
-            // ── Forma ─────────────────────────────────────────────────────
             <div className="form-grid">
               <div className="form-field full">
                 <label className="form-label">Наслов приче *</label>
@@ -224,7 +260,7 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
                 <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
               </div>
 
-              {/* Slika */}
+              {/* Slika — ostaje base64 */}
               <div className="form-field">
                 <label className="form-label">Насловна слика (опционо)</label>
                 <input ref={imgRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleImgFile} />
@@ -251,19 +287,20 @@ function StoryForm({ isAdmin, user, item, onSaved, onClose }) {
                     }}
                     style={{ width: 15, height: 15, accentColor: "var(--gold-dark)", cursor: "pointer" }}
                   />
-                  <span className="form-label" style={{ margin: 0 }}>Документа (PDF) максимално до 1 MB</span>
+                  <span className="form-label" style={{ margin: 0 }}>Документа (PDF)</span>
                 </label>
               </div>
 
               {havePdf && (
                 <div className="form-field full">
                   <input ref={pdfRef} type="file" accept="application/pdf" style={{ display: "none" }} onChange={handlePdfFile} />
-                  {pdfData ? (
+                  {hasPdfSelected ? (
                     <div style={{ display: "flex", alignItems: "center", gap: ".5rem", padding: ".5rem .75rem", background: "rgba(200,150,62,.07)", borderRadius: 6, border: "1px solid rgba(200,150,62,.2)" }}>
                       <span style={{ fontSize: "1.1rem" }}>📄</span>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: ".78rem", fontWeight: 600, color: "var(--ink)" }}>{pdfName || "Документ.pdf"}</div>
                         {pdfSize && <div style={{ fontSize: ".68rem", color: "#aaa" }}>{pdfSize} KB</div>}
+                        {existPath && !pdfFile && <div style={{ fontSize: ".68rem", color: "#aaa" }}>Постојећи фајл</div>}
                       </div>
                       <button className="btn btn-ghost btn-sm" onClick={() => pdfRef.current.click()}>Промјени</button>
                       <button className="btn btn-danger btn-sm" onClick={handleRemovePdf}>✕</button>
@@ -308,42 +345,18 @@ export default function HistoryView({ isAdmin, user }) {
     setLoading(true);
     const { data } = await supabase
       .from("history_stories")
-      .select("id, title, content, cover_image, image_type, story_date, created_at, have_pdf")
+      .select("id, title, content, cover_image, image_type, story_date, created_at, have_pdf, pdf_path")
       .order("story_date", { ascending: true });
     setStories(data || []);
     setLoading(false);
-  };
-
-  const handleSelect = async (story) => {
-    if (story.have_pdf) {
-      const { data } = await supabase
-        .from("history_stories")
-        .select("pdf_data")
-        .eq("id", story.id)
-        .single();
-      setSelected({ ...story, pdf_data: data?.pdf_data || null });
-    } else {
-      setSelected(story);
-    }
-  };
-
-  const handleEdit = async (story) => {
-    if (story.have_pdf) {
-      const { data } = await supabase
-        .from("history_stories")
-        .select("pdf_data")
-        .eq("id", story.id)
-        .single();
-      setEditItem({ ...story, pdf_data: data?.pdf_data || null });
-    } else {
-      setEditItem(story);
-    }
   };
 
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (id) => {
     if (!window.confirm("Обрисати ову причу?")) return;
+    const story = stories.find(s => s.id === id);
+    if (story?.pdf_path) await deletePdf(story.pdf_path);
     await supabase.from("history_stories").delete().eq("id", id);
     load();
   };
@@ -366,41 +379,53 @@ export default function HistoryView({ isAdmin, user }) {
         <div className="empty-state"><div className="empty-state-icon">📖</div><div className="empty-state-text">Још нема прича</div></div>
       ) : (
         <div className="gallery-grid">
-          {stories.map(story => (
-            <div key={story.id} className="gallery-item">
-              {story.cover_image ? (
-                <img
-                  src={`data:${story.image_type || "image/jpeg"};base64,${story.cover_image}`}
-                  alt={story.title}
-                  className="gallery-img"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => handleSelect(story)}
-                />
-              ) : (
-                <div className="gallery-img-placeholder story-placeholder" style={{ cursor: "pointer" }} onClick={() => handleSelect(story)}>📖</div>
-              )}
-              <div className="gallery-caption">
-                <div className="gallery-caption-title" style={{ cursor: "pointer" }} onClick={() => handleSelect(story)}>{story.title}</div>
-                {story.story_date && <div className="gallery-caption-sub">📅 {formatDate(story.story_date)}</div>}
-                <div className="gallery-caption-sub" style={{ marginTop: ".3rem", lineHeight: 1.5 }}>{excerpt(story.content)}</div>
-
-                {story.have_pdf && (
-                  <PdfDownloadButton storyId={story.id} title={story.title} />
+          {stories.map(story => {
+            const pdfUrl = getPdfUrl(story.pdf_path);
+            return (
+              <div key={story.id} className="gallery-item">
+                {story.cover_image ? (
+                  <img
+                    src={`data:${story.image_type || "image/jpeg"};base64,${story.cover_image}`}
+                    alt={story.title}
+                    className="gallery-img"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setSelected(story)}
+                  />
+                ) : (
+                  <div className="gallery-img-placeholder story-placeholder" style={{ cursor: "pointer" }} onClick={() => setSelected(story)}>📖</div>
                 )}
+                <div className="gallery-caption">
+                  <div className="gallery-caption-title" style={{ cursor: "pointer" }} onClick={() => setSelected(story)}>{story.title}</div>
+                  {story.story_date && <div className="gallery-caption-sub">📅 {formatDate(story.story_date)}</div>}
+                  <div className="gallery-caption-sub" style={{ marginTop: ".3rem", lineHeight: 1.5 }}>{excerpt(story.content)}</div>
 
-                {isAdmin && (
-                  <div style={{ display: "flex", gap: ".4rem", marginTop: ".6rem" }}>
-                    <button className="btn btn-ghost btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleEdit(story)}>
-                      <Icon name="edit" size={11} />Уреди
-                    </button>
-                    <button className="btn btn-danger btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleDelete(story.id)}>
-                      <Icon name="trash" size={11} />Обриши
-                    </button>
-                  </div>
-                )}
+                  {pdfUrl && (
+                    <a
+                      href={pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                      className="btn btn-ghost btn-sm"
+                      style={{ marginTop: ".5rem", display: "inline-flex", alignItems: "center", gap: ".35rem", textDecoration: "none" }}
+                    >
+                      <Icon name="image" size={11} />📄 PDF
+                    </a>
+                  )}
+
+                  {isAdmin && (
+                    <div style={{ display: "flex", gap: ".4rem", marginTop: ".6rem" }}>
+                      <button className="btn btn-ghost btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => setEditItem(story)}>
+                        <Icon name="edit" size={11} />Уреди
+                      </button>
+                      <button className="btn btn-danger btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleDelete(story.id)}>
+                        <Icon name="trash" size={11} />Обриши
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -416,36 +441,5 @@ export default function HistoryView({ isAdmin, user }) {
         />
       )}
     </div>
-  );
-}
-
-// ── Lazy PDF download ─────────────────────────────────────────────────────────
-function PdfDownloadButton({ storyId, title }) {
-  const [loading, setLoading] = useState(false);
-
-  const handleDownload = async () => {
-    setLoading(true);
-    try {
-      const { data } = await supabase
-        .from("history_stories")
-        .select("pdf_data")
-        .eq("id", storyId)
-        .single();
-      if (data?.pdf_data) downloadPdf(data.pdf_data, title);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <button
-      className="btn btn-ghost btn-sm"
-      style={{ marginTop: ".5rem", display: "inline-flex", alignItems: "center", gap: ".35rem" }}
-      onClick={handleDownload}
-      disabled={loading}
-    >
-      <Icon name="image" size={11} />
-      {loading ? "Учитавање..." : "📄 PDF"}
-    </button>
   );
 }
