@@ -65,11 +65,13 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
         });
       } else if (type === "history") {
         await supabase.from("history_stories").insert({
-          title: req.title, content: req.content,
-          cover_image: req.image_data || null, image_type: req.image_type || "image/jpeg",
-          story_date: req.story_date || null,
-          have_pdf: req.have_pdf || false,
-          pdf_data: req.have_pdf ? (req.pdf_data || null) : null,
+          title:       req.title,
+          content:     req.content,
+          cover_image: req.image_data || null,
+          image_type:  req.image_type || "image/jpeg",
+          story_date:  req.story_date || null,
+          have_pdf:    req.have_pdf || false,
+          pdf_path:    req.have_pdf ? (req.pdf_path || null) : null,
         });
       } else if (type === "announcement") {
         await supabase.from("announcements").insert({
@@ -248,24 +250,19 @@ export default function AdminRequestsView({ members, onMemberAdded }) {
                 {req.have_pdf && (
                   <div className="req-field" style={{ gridColumn: "1/-1" }}>
                     <div className="req-field-key">📄 PDF документ</div>
-                    {req.pdf_data ? (
-                      <button
+                    {req.pdf_path ? (
+                      <a
+                        href={(() => { const { data } = supabase.storage.from("history-pdfs").getPublicUrl(req.pdf_path); return data.publicUrl; })()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download
                         className="btn btn-ghost btn-sm"
-                        style={{ marginTop: ".3rem" }}
-                        onClick={() => {
-                          const bytes = atob(req.pdf_data);
-                          const arr   = new Uint8Array(bytes.length);
-                          for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
-                          const url = URL.createObjectURL(new Blob([arr], { type: "application/pdf" }));
-                          const a = document.createElement("a");
-                          a.href = url; a.download = `${req.title}.pdf`; a.click();
-                          URL.revokeObjectURL(url);
-                        }}
+                        style={{ marginTop: ".3rem", display: "inline-flex", alignItems: "center", gap: ".35rem", textDecoration: "none" }}
                       >
                         📄 Прегледај / Скини PDF
-                      </button>
+                      </a>
                     ) : (
-                      <span style={{ fontSize: ".75rem", color: "#aaa" }}>PDF придружен захтјеву</span>
+                      <span style={{ fontSize: ".75rem", color: "#aaa" }}>PDF није приложен</span>
                     )}
                   </div>
                 )}
