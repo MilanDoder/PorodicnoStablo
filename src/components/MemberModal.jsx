@@ -15,10 +15,21 @@ export default function MemberModal({ member, members, onSave, onClose }) {
     ? members.filter(m => (m.parent_ids || []).includes(member.id)).map(m => m.id)
     : [];
 
-  const [f, setF] = useState(member || {
-    first_name: "", last_name: FAMILY_SURNAME, birth_year: "", death_year: "",
-    gender: "male", notes: "", parent_ids: [], generational_line: null,
-    featured: false, featured_note: "", spouse_name: "",
+  const initGenLine = (m) => {
+    if (m?.generational_line) return m.generational_line;
+    const ids = m?.parent_ids || [];
+    if (ids.length === 0) return null;
+    const parentGens = ids.map(pid => members.find(x => x.id === pid)?.generational_line).filter(g => g != null);
+    return parentGens.length > 0 ? Math.max(...parentGens) + 1 : null;
+  };
+
+  const [f, setF] = useState(() => {
+    const base = member || {
+      first_name: "", last_name: FAMILY_SURNAME, birth_year: "", death_year: "",
+      gender: "male", notes: "", parent_ids: [], generational_line: null,
+      featured: false, featured_note: "", spouse_name: "",
+    };
+    return { ...base, generational_line: initGenLine(base) };
   });
   const [childIds, setChildIds] = useState(existingChildIds);
   const [saving, setSaving] = useState(false);
