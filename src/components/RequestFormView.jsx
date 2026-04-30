@@ -16,30 +16,43 @@ export default function RequestFormView({ user, members, onSuccess }) {
 
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
 
+  // Automatski racunaj koleno kad se izaberu roditelji
+  const handleParentsChange = (ids) => {
+    const parentGens = ids
+      .map(pid => members.find(m => m.id === pid)?.generational_line)
+      .filter(g => g != null);
+    const computed = parentGens.length > 0 ? Math.max(...parentGens) + 1 : null;
+    setF(p => ({ ...p, parent_ids: ids, generational_line: computed ?? p.generational_line }));
+  };
+
   const handleSubmit = async () => {
     if (!f.first_name) return;
     setSaving(true);
     try {
       const { error } = await supabase.from("data_requests").insert({
-        user_id:     user.id,
-        user_email:  user.email,
-        first_name:  f.first_name,
-        last_name:   f.last_name,
-        gender:      f.gender,
-        birth_year:  f.birth_year ? parseInt(f.birth_year) : null,
-        death_year:  f.death_year ? parseInt(f.death_year) : null,
-        notes:       f.notes || null,
-        parent_ids:  f.parent_ids,
-        spouse_name: f.spouse_name || null,
-        status:      "pending",
+        request_type:      "member",
+        user_id:           user.id,
+        user_email:        user.email,
+        first_name:        f.first_name,
+        last_name:         f.last_name,
+        gender:            f.gender,
+        birth_year:        f.birth_year ? parseInt(f.birth_year) : null,
+        death_year:        f.death_year ? parseInt(f.death_year) : null,
+        notes:             f.notes || null,
+        parent_ids:        f.parent_ids,
+        generational_line: f.generational_line || null,
+        spouse_name:       f.spouse_name || null,
+        status:            "pending",
       });
-      if (error) { alert("Грешка при слању: " + error.message); return; }
+      if (error) throw error;
+
       setSuccess(true);
       setF(EMPTY_FORM);
       setTimeout(() => setSuccess(false), 5000);
       onSuccess?.();
-    } catch {
-      alert("Неочекивана грешка. Покушајте поново.");
+    } catch (err) {
+      console.error("RequestFormView greška:", err);
+      alert("Грешка: " + (err?.message || JSON.stringify(err)));
     } finally {
       setSaving(false);
     }
@@ -93,7 +106,7 @@ export default function RequestFormView({ user, members, onSuccess }) {
           </div>
           <div className="form-field full">
             <label className="form-label">Родитељи (из стабла)</label>
-            <ParentPicker members={members} selectedIds={f.parent_ids || []} onChange={ids => set("parent_ids", ids)} />
+            <ParentPicker members={members} selectedIds={f.parent_ids || []} onChange={handleParentsChange} />
           </div>
           <div className="form-field full">
             <label className="form-label">Напомена / Извор података</label>
