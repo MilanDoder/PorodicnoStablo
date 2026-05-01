@@ -256,7 +256,7 @@ export default function App() {
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <img src="/image/grb.png" alt="Грб" className="sidebar-grb" />
+            <img src="/image/grb.jpeg" alt="Грб" className="sidebar-grb" />
             <div className="sidebar-logo-text">{FAMILY_FULL_NAME}</div>
             <div className="sidebar-sub">Породична архива</div>
           </div>
