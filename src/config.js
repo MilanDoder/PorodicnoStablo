@@ -13,7 +13,7 @@ export const FAMILY_SURNAME = "Додеровић";
 export const FAMILY_NAME_PLURAL = "Додеровићи";
 
 // Drugi krak / ogranак porodice (npr. "Додери")
-export const FAMILY_BRANCH = "Додери";
+export const FAMILY_BRANCH = "Додер";
 
 // Puni naziv — koristi se u naslovima, topbaru, logou
 export const FAMILY_FULL_NAME = `${FAMILY_NAME_PLURAL} и ${FAMILY_BRANCH}`;
