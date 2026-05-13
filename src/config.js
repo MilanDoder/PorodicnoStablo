@@ -16,7 +16,7 @@ export const FAMILY_NAME_PLURAL = "Додеровићи";
 export const FAMILY_BRANCH = "Додер";
 
 // Puni naziv — koristi se u naslovima, topbaru, logou
-export const FAMILY_FULL_NAME = `${FAMILY_NAME_PLURAL} и ${FAMILY_BRANCH}`;
+export const FAMILY_FULL_NAME = `${FAMILY_SURNAME} и ${FAMILY_BRANCH}`;
 
 // Lokacija / selo
 export const FAMILY_LOCATION = "";
